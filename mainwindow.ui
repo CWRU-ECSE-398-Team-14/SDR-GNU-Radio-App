@@ -40,12 +40,12 @@
        <rect>
         <x>7</x>
         <y>230</y>
-        <width>350</width>
+        <width>450</width>
         <height>16</height>
        </rect>
       </property>
       <property name="maximum">
-       <number>350</number>
+       <number>450</number>
       </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -55,13 +55,13 @@
       <property name="geometry">
        <rect>
         <x>7</x>
-        <y>190</y>
-        <width>350</width>
+        <y>160</y>
+        <width>450</width>
         <height>16</height>
        </rect>
       </property>
       <property name="maximum">
-       <number>350</number>
+       <number>450</number>
       </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -70,9 +70,9 @@
      <widget class="QLCDNumber" name="centerFreqLcdNumber">
       <property name="geometry">
        <rect>
-        <x>360</x>
-        <y>180</y>
-        <width>111</width>
+        <x>320</x>
+        <y>130</y>
+        <width>91</width>
         <height>31</height>
        </rect>
       </property>
@@ -85,15 +85,15 @@
        <bool>false</bool>
       </property>
       <property name="digitCount">
-       <number>7</number>
+       <number>6</number>
       </property>
      </widget>
      <widget class="QLCDNumber" name="bandwidthLcdNumber">
       <property name="geometry">
        <rect>
-        <x>360</x>
-        <y>220</y>
-        <width>111</width>
+        <x>320</x>
+        <y>200</y>
+        <width>91</width>
         <height>31</height>
        </rect>
       </property>
@@ -103,14 +103,14 @@
        </font>
       </property>
       <property name="digitCount">
-       <number>7</number>
+       <number>6</number>
       </property>
      </widget>
      <widget class="QLabel" name="centerFreqLabel">
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>170</y>
+        <y>140</y>
         <width>110</width>
         <height>19</height>
        </rect>
@@ -146,13 +146,62 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>10</y>
+        <y>20</y>
         <width>450</width>
-        <height>150</height>
+        <height>100</height>
        </rect>
       </property>
       <property name="text">
        <string>No Spectal Data</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="waterfallFreqLabel">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>0</y>
+        <width>450</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>0Hz</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="centerFreqUnitsLabel">
+      <property name="geometry">
+       <rect>
+        <x>420</x>
+        <y>140</y>
+        <width>41</width>
+        <height>19</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>14</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>MHz</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="bandwidthUnitsLabel">
+      <property name="geometry">
+       <rect>
+        <x>420</x>
+        <y>210</y>
+        <width>41</width>
+        <height>19</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>14</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>kHz</string>
       </property>
      </widget>
     </widget>

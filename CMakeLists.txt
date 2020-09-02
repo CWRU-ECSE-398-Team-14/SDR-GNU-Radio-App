@@ -34,6 +34,10 @@ if(ANDROID)
     main.cpp
     mainwindow.cpp
     mainwindow.h
+    radio.cpp
+    radio.h
+    waterfall.cpp
+    waterfall.h
     mainwindow.ui
     ${TS_FILES}
   )
@@ -42,11 +46,34 @@ else()
     main.cpp
     mainwindow.cpp
     mainwindow.h
+    radio.cpp
+    radio.h
+    waterfall.cpp
+    waterfall.h
     mainwindow.ui
     ${TS_FILES}
   )
 endif()
 
-target_link_libraries(sdr_gnu_radio_app PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_include_directories(sdr_gnu_radio_app PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/amqpcpp>
+    $<INSTALL_INTERFACE:amqpcpp>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/amqpcpp/rabbitmq-c/librabbitmq/>
+    $<INSTALL_INTERFACE:amqpcpp/rabbitmq-c/librabbitmq/>
+)
+
+add_subdirectory(amqpcpp)
+target_include_directories(amqpcpp PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/amqpcpp>
+    $<INSTALL_INTERFACE:amqpcpp>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/amqpcpp/rabbitmq-c/librabbitmq/>
+    $<INSTALL_INTERFACE:amqpcpp/rabbitmq-c/librabbitmq/>
+)
+
+target_link_libraries(sdr_gnu_radio_app PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
+    amqpcpp
+)
+
 
 qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
