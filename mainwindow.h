@@ -18,14 +18,65 @@ public:
 
 private slots:
     void handleMessage(const QString &);
+
+    void handleWaterfall(const QPixmap &);
+
+    void checkKeypadEntry();
+
     void on_frequencySlider_sliderPressed();
 
     void on_frequencySlider_actionTriggered(int action);
 
     void on_bandwidthSlider_actionTriggered(int action);
 
+    void on_volumeSlider_actionTriggered(int action);
+
+    void on_pushButton_1_clicked();
+
+    void on_pushButton_2_clicked();
+
+    void on_pushButton_3_clicked();
+
+    void on_pushButton_4_clicked();
+
+    void on_pushButton_5_clicked();
+
+    void on_pushButton_6_clicked();
+
+    void on_pushButton_7_clicked();
+
+    void on_pushButton_8_clicked();
+
+    void on_pushButton_9_clicked();
+
+    void on_pushButton_0_clicked();
+
+    void on_pushButton_point_clicked();
+
+    void on_pushButton_pound_clicked();
+
+    void on_scanStartBtn_toggled(bool checked);
+
+    void on_scanStopBtn_toggled(bool checked);
+
+    void on_activeFreqBtn_toggled(bool checked);
+
+    void on_scanStepBtn_toggled(bool checked);
+
+    void on_decreaseBtn_clicked();
+
+    void on_increaseBtn_clicked();
+
 private:
     Ui::MainWindow *ui;
     Radio* radio;
+    Waterfall* waterfall;
+    QStringList keypadEntry;
+
+signals:
+    void changeFrequency(double freq);
+    void changeBandwidth(double bw);
+    void changeVolume(double vol);
+
 };
 #endif // MAINWINDOW_H
