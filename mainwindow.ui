@@ -7,8 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>480</width>
-    <height>320</height>
+    <height>310</height>
    </rect>
+  </property>
+  <property name="font">
+   <font>
+    <family>Liberation Sans</family>
+   </font>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
@@ -20,8 +25,13 @@
       <x>0</x>
       <y>0</y>
       <width>480</width>
-      <height>291</height>
+      <height>281</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Liberation Sans</family>
+     </font>
     </property>
     <property name="layoutDirection">
      <enum>Qt::LeftToRight</enum>
@@ -100,7 +110,10 @@
          </property>
          <property name="font">
           <font>
+           <family>Liberation Mono</family>
            <pointsize>14</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="text">
@@ -124,7 +137,10 @@
          </property>
          <property name="font">
           <font>
+           <family>Liberation Mono</family>
            <pointsize>14</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="text">
@@ -148,6 +164,7 @@
          </property>
          <property name="font">
           <font>
+           <family>Liberation Mono</family>
            <pointsize>14</pointsize>
           </font>
          </property>
@@ -178,7 +195,10 @@
          </property>
          <property name="font">
           <font>
+           <family>Liberation Mono</family>
            <pointsize>14</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="text">
@@ -202,7 +222,10 @@
          </property>
          <property name="font">
           <font>
+           <family>Liberation Mono</family>
            <pointsize>14</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="text">
@@ -226,7 +249,10 @@
          </property>
          <property name="font">
           <font>
+           <family>Liberation Mono</family>
            <pointsize>14</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="text">
@@ -250,7 +276,10 @@
          </property>
          <property name="font">
           <font>
+           <family>Liberation Mono</family>
            <pointsize>14</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="text">
@@ -274,7 +303,10 @@
          </property>
          <property name="font">
           <font>
+           <family>Liberation Mono</family>
            <pointsize>14</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="text">
@@ -298,7 +330,10 @@
          </property>
          <property name="font">
           <font>
+           <family>Liberation Mono</family>
            <pointsize>14</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="text">
@@ -322,7 +357,10 @@
          </property>
          <property name="font">
           <font>
+           <family>Liberation Mono</family>
            <pointsize>14</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="text">
@@ -346,9 +384,10 @@
          </property>
          <property name="font">
           <font>
+           <family>Liberation Mono</family>
            <pointsize>14</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="text">
@@ -372,11 +411,14 @@
          </property>
          <property name="font">
           <font>
+           <family>Liberation Mono</family>
            <pointsize>14</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="text">
-          <string>#</string>
+          <string>del</string>
          </property>
         </widget>
        </item>
@@ -393,7 +435,7 @@
       </property>
       <property name="font">
        <font>
-        <family>Monospace</family>
+        <family>Liberation Mono</family>
         <pointsize>20</pointsize>
        </font>
       </property>
@@ -418,7 +460,7 @@
       </property>
       <property name="font">
        <font>
-        <family>Monospace</family>
+        <family>Liberation Mono</family>
         <pointsize>20</pointsize>
        </font>
       </property>
@@ -440,6 +482,7 @@
       </property>
       <property name="font">
        <font>
+        <family>Liberation Sans</family>
         <pointsize>12</pointsize>
        </font>
       </property>
@@ -464,6 +507,7 @@
       </property>
       <property name="font">
        <font>
+        <family>Liberation Sans</family>
         <pointsize>12</pointsize>
        </font>
       </property>
@@ -485,7 +529,7 @@
       </property>
       <property name="font">
        <font>
-        <family>Monospace</family>
+        <family>Liberation Mono</family>
         <pointsize>20</pointsize>
        </font>
       </property>
@@ -510,6 +554,7 @@
       </property>
       <property name="font">
        <font>
+        <family>Liberation Sans</family>
         <pointsize>12</pointsize>
        </font>
       </property>
@@ -523,11 +568,16 @@
      <widget class="QPushButton" name="searchBtn">
       <property name="geometry">
        <rect>
-        <x>60</x>
-        <y>210</y>
-        <width>71</width>
+        <x>270</x>
+        <y>160</y>
+        <width>81</width>
         <height>41</height>
        </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Liberation Mono</family>
+       </font>
       </property>
       <property name="text">
        <string>Search</string>
@@ -544,7 +594,7 @@
       </property>
       <property name="font">
        <font>
-        <family>Monospace</family>
+        <family>Liberation Mono</family>
         <pointsize>20</pointsize>
        </font>
       </property>
@@ -566,6 +616,7 @@
       </property>
       <property name="font">
        <font>
+        <family>Liberation Sans</family>
         <pointsize>12</pointsize>
        </font>
       </property>
@@ -579,11 +630,16 @@
      <widget class="QPushButton" name="decreaseBtn">
       <property name="geometry">
        <rect>
-        <x>270</x>
+        <x>360</x>
         <y>160</y>
         <width>51</width>
         <height>41</height>
        </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Liberation Mono</family>
+       </font>
       </property>
       <property name="text">
        <string>Down</string>
@@ -592,14 +648,99 @@
      <widget class="QPushButton" name="increaseBtn">
       <property name="geometry">
        <rect>
-        <x>330</x>
+        <x>420</x>
         <y>160</y>
         <width>51</width>
         <height>41</height>
        </rect>
       </property>
+      <property name="font">
+       <font>
+        <family>Liberation Mono</family>
+       </font>
+      </property>
       <property name="text">
        <string>Up</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="nextChannelBtn">
+      <property name="geometry">
+       <rect>
+        <x>420</x>
+        <y>210</y>
+        <width>51</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Liberation Mono</family>
+       </font>
+      </property>
+      <property name="text">
+       <string>Next</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="prevChannelBtn">
+      <property name="geometry">
+       <rect>
+        <x>360</x>
+        <y>210</y>
+        <width>51</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Liberation Mono</family>
+       </font>
+      </property>
+      <property name="text">
+       <string>Prev</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="currentChannelBtn">
+      <property name="geometry">
+       <rect>
+        <x>60</x>
+        <y>210</y>
+        <width>291</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Liberation Mono</family>
+        <pointsize>11</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>----</string>
+      </property>
+      <property name="checkable">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QLabel" name="stopLabel_3">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>210</y>
+        <width>51</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Liberation Sans</family>
+        <pointsize>12</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>Chan.</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
       </property>
      </widget>
     </widget>
@@ -653,6 +794,7 @@
       </property>
       <property name="font">
        <font>
+        <family>Liberation Sans</family>
         <pointsize>14</pointsize>
        </font>
       </property>
@@ -674,6 +816,7 @@
       </property>
       <property name="font">
        <font>
+        <family>Liberation Sans</family>
         <pointsize>14</pointsize>
        </font>
       </property>
@@ -692,6 +835,7 @@
       </property>
       <property name="font">
        <font>
+        <family>Liberation Sans</family>
         <pointsize>14</pointsize>
        </font>
       </property>
@@ -710,6 +854,7 @@
       </property>
       <property name="font">
        <font>
+        <family>Liberation Sans</family>
         <pointsize>14</pointsize>
        </font>
       </property>
@@ -726,6 +871,11 @@
         <height>100</height>
        </rect>
       </property>
+      <property name="font">
+       <font>
+        <family>Liberation Sans</family>
+       </font>
+      </property>
       <property name="text">
        <string>No Spectral Data</string>
       </property>
@@ -738,6 +888,11 @@
         <width>450</width>
         <height>20</height>
        </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Liberation Sans</family>
+       </font>
       </property>
       <property name="text">
        <string>0Hz</string>
@@ -754,6 +909,7 @@
       </property>
       <property name="font">
        <font>
+        <family>Liberation Sans</family>
         <pointsize>14</pointsize>
        </font>
       </property>
@@ -772,6 +928,7 @@
       </property>
       <property name="font">
        <font>
+        <family>Liberation Sans</family>
         <pointsize>14</pointsize>
        </font>
       </property>

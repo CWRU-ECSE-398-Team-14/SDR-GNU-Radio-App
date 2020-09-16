@@ -21,6 +21,10 @@ private slots:
 
     void handleWaterfall(const QPixmap &);
 
+    void handleStatusUpdate(const RadioStatus &);
+
+    void updateFreqDisplay(double freq);
+
     void checkKeypadEntry();
 
     void on_frequencySlider_sliderPressed();
@@ -67,11 +71,16 @@ private slots:
 
     void on_increaseBtn_clicked();
 
+    void on_nextChannelBtn_clicked();
+
+    void on_prevChannelBtn_clicked();
+
 private:
     Ui::MainWindow *ui;
     Radio* radio;
     Waterfall* waterfall;
     QStringList keypadEntry;
+    RadioStatus* radioStatus;
 
 signals:
     void changeFrequency(double freq);

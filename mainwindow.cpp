@@ -10,9 +10,13 @@ MainWindow::MainWindow(QWidget *parent)
     // ==== radio thread things ====
     radio = new Radio(this);
     radio->setupRadio(); // basic setup
+    radioStatus = new RadioStatus(); // create this to avoid any null pointer issues
 
     // connect radio messageReady signal to MainWindow slot handleMessage
     connect(radio, &Radio::messageReady, this, &MainWindow::handleMessage);
+
+    // connect radio statusUpdate signal to this object's handleStatusUpdate slot
+    connect(radio, &Radio::statusUpdate, this, &MainWindow::handleStatusUpdate);
     connect(radio, &Radio::finished, radio, &QObject::deleteLater);
     radio->start(); // start radio thread
 
@@ -66,6 +70,22 @@ void MainWindow::handleWaterfall(const QPixmap& pixmap){
 }
 
 /**
+ * @brief MainWindow::handleStatusUpdate slot for receiving radio status updates
+ * @param status RadioStatus object representing the radio's current status
+ */
+void MainWindow::handleStatusUpdate(const RadioStatus& status){
+    this->radioStatus = new RadioStatus(status);
+    ui->statusbar->showMessage("SDR dongle status: " + radioStatus->statusStr);
+}
+
+void MainWindow::updateFreqDisplay(double freq){
+    ui->activeFreqBtn->setText(QString("%1MHz").arg(freq/1.0e6, 0, 'f', 3));
+    ui->centerFreqLcdNumber->display(QString("%1").arg(freq/1.0e6, 0, 'f', 1));
+    Channel chan = this->radio->findChannelByFreq(freq);
+    ui->currentChannelBtn->setText(chan.getName());
+}
+
+/**
  * @brief MainWindow::checkKeypadEntry check state of entered information
  */
 void MainWindow::checkKeypadEntry(){
@@ -98,8 +118,8 @@ void MainWindow::checkKeypadEntry(){
                 d = d * 1.0e6; // from MHz to Hz
                 d = constrain(d, this->radio->getMinFreq(), this->radio->getMaxFreq());
 
-                ui->activeFreqBtn->setText(QString("%1MHz").arg(d/1.0e6, 0, 'f', 3));
-                ui->centerFreqLcdNumber->display(QString("%1").arg(this->radio->getCenterFreq()/1.0e6, 0, 'f', 1));
+                this->updateFreqDisplay(d);
+
                 int slider_value = int(map(d,
                                            this->radio->getMinFreq(),
                                            this->radio->getMaxFreq(),
@@ -141,8 +161,7 @@ void MainWindow::on_frequencySlider_actionTriggered(int action)
                       this->radio->getMinFreq(),
                       this->radio->getMaxFreq());
     emit changeFrequency(freq); // signal to radio the change frequency
-    ui->centerFreqLcdNumber->display(QString("%1").arg(this->radio->getCenterFreq()/1.0e6, 0, 'f', 1));
-    ui->activeFreqBtn->setText(QString("%1MHz").arg(this->radio->getCenterFreq()/1.0e6, 0, 'f', 3));
+    this->updateFreqDisplay(this->radio->getCenterFreq());
 //    ui->activeFrequency->display(longs);
 }
 
@@ -236,8 +255,11 @@ void MainWindow::on_pushButton_point_clicked()
 
 void MainWindow::on_pushButton_pound_clicked()
 {
-    // not sure what behavior we want here
-    // this->keypadEntry << "#";
+    if(this->keypadEntry.size() > 0){
+        this->keypadEntry.erase(--this->keypadEntry.end());
+    }
+    this->checkKeypadEntry();
+
 }
 // ==== END KEYPAD SLOTS ====
 
@@ -295,7 +317,7 @@ void MainWindow::on_decreaseBtn_clicked()
     // decrease active frequency by step size
     double f = this->radio->getCenterFreq();
     f -= this->radio->getScanStep();
-    ui->activeFreqBtn->setText(QString("%1MHz").arg(f/1.0e6, 0, 'f', 3));
+    this->updateFreqDisplay(f);
     emit changeFrequency(f);
 
 }
@@ -305,6 +327,16 @@ void MainWindow::on_increaseBtn_clicked()
     // increase active frequency by step size
     double f = this->radio->getCenterFreq();
     f += this->radio->getScanStep();
-    ui->activeFreqBtn->setText(QString("%1MHz").arg(f/1.0e6, 0, 'f', 3));
+    this->updateFreqDisplay(f);
     emit changeFrequency(f);
+}
+
+void MainWindow::on_nextChannelBtn_clicked()
+{
+
+}
+
+void MainWindow::on_prevChannelBtn_clicked()
+{
+
 }

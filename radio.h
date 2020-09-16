@@ -7,9 +7,13 @@
 #include <QMutex>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QJsonArray>
 #include <QProcess>
+#include <QFile>
+#include <QTimer>
 #include <cstdio>
 #include "AMQPcpp.h"
+#include <limits>
 
 /**
  * @brief The RadioConfig class
@@ -20,7 +24,7 @@ class RadioConfig : public QObject
     Q_OBJECT
 public:
     explicit RadioConfig(QObject *parent = nullptr);
-    explicit RadioConfig(const RadioConfig& conf);
+    RadioConfig(const RadioConfig& conf);
     QByteArray packetizeData();
     double minFreq          = 0.5e6;
     double maxFreq          = 1.7e9;
@@ -34,13 +38,48 @@ public:
     double scanStep         = 12500.0;  // scan frequency step
     bool update             = false;    // flag to indicate that the SDR needs to be updated with config info
     QVector<QPair<QString,QJsonValue>> packets;       // store packets to send out
+    QString protocolStr     = "";
 private:
     QJsonObject* json;
 };
 
+/**
+ * @brief The RadioStatus class represents the radio status
+ */
+class RadioStatus : public QObject
+{
+    Q_OBJECT
+public:
+    explicit RadioStatus(QObject *parent = nullptr);
+    RadioStatus(const RadioStatus& other); // copy constructor
+    QString name        = "";
+    QString statusStr   = "";
+    double frequency    = 0.0; // what the radio is actually tuned-in to
+    double signalPower  = -std::numeric_limits<double>::max(); // smallest representable number, -inf so to speak
+};
 
 /**
- * @brief The Radio class, will run as a QThread
+ * @brief The Channel class represents a radio channel
+ */
+class Channel
+{
+public:
+    static Channel fromJson(QJsonObject json);
+    static bool channelLessThan(const Channel& ch1, const Channel& ch2);
+    explicit Channel(QString name = "", double freq = 0.0, double bw = 0.0, QString protocol = "");
+    Channel(const Channel& ch);
+    QJsonObject toJson();
+    bool operator==(const Channel& ch);
+    QString name = "";
+    QString protocol = "";
+    double frequency = 0.0;
+    double bandwidth = 0.0;
+    QString getName() { return name; }
+};
+
+
+/**
+ * @brief The Radio class will run as a QThread
  * handles communication with the GNU radio process
  */
 class Radio : public QThread
@@ -50,14 +89,21 @@ class Radio : public QThread
 public:
     explicit Radio(QObject *parent = nullptr);
     ~Radio();
+    Channel findChannelByFreq(double freq);
     double  getCenterFreq () { return this->radioConfig->centerFrequency; }
     double  getBandwidth  () { return this->radioConfig->bandwidth; }
     double  getMaxFreq    () { return this->radioConfig->maxFreq; }
     double  getMinFreq    () { return this->radioConfig->minFreq; }
     double  getScanStep   () { return this->radioConfig->scanStep; }
+    QString getProtocol   () { return this->radioConfig->protocolStr; }
+    QString getStatusStr  () { return this->radioStatus->statusStr; }
+    double  getFrequency  () { return this->radioStatus->frequency; } // what freq is the radio tuned to
+    double  getSignalPower() { return this->radioStatus->signalPower; }
+    QString getName       () { return this->radioStatus->name; }
     void    setupRadio    ();
     QString radioProgramPath = "/home/adam/Documents/hello_world/rcv.py";
     QStringList radioProgramArgs = {""};
+    QString statusStr;
 
 public slots:
     void    setBandwidth    (double bw);
@@ -69,9 +115,16 @@ public slots:
     void    setStepSize     (double freq);
     void    setScanStep     (double freq);
     void    configureRadio  (const RadioConfig& config);
+    void    updateStatus    (const QJsonDocument& json);
+    void    setProtocol     (const QString& str);
+    void    addChannel      (const Channel& ch);
+    void    saveChannels    ();
+    void    nextChannel     ();
+    void    prevChannel     ();
 
 private:
     RadioConfig * radioConfig;
+    RadioStatus * radioStatus;
     QProcess* radioProcess;
     AMQP* amqp;
     AMQPQueue * rxqu;
@@ -79,6 +132,10 @@ private:
     AMQPQueue * txqu;
     QMutex* configMtx;
     QVector<double> fft;
+    QVector<Channel> channels; // stores radio channels
+    QString channelSavePath = "";
+    QTimer * saveTimer;
+    QVector<Channel>::iterator currentChannel;
     void populateFFT(char* data, int size);
     double centerFrequency  = 500000.0; // 500 kHz
     double bandwidth        = 1000.0;   // 1 kHz
@@ -86,6 +143,7 @@ private:
 signals:
     void messageReady(const QString& msg);
     void fftReady(const QVector<double>& fft);
+    void statusUpdate(const RadioStatus& status);
 };
 
 #endif // RADIO_H
