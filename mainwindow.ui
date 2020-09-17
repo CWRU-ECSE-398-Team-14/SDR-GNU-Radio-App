@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>480</width>
-    <height>310</height>
+    <height>320</height>
    </rect>
   </property>
   <property name="font">
@@ -25,12 +25,13 @@
       <x>0</x>
       <y>0</y>
       <width>480</width>
-      <height>281</height>
+      <height>320</height>
      </rect>
     </property>
     <property name="font">
      <font>
       <family>Liberation Sans</family>
+      <pointsize>12</pointsize>
      </font>
     </property>
     <property name="layoutDirection">
@@ -577,6 +578,7 @@
       <property name="font">
        <font>
         <family>Liberation Mono</family>
+        <pointsize>12</pointsize>
        </font>
       </property>
       <property name="text">
@@ -639,6 +641,7 @@
       <property name="font">
        <font>
         <family>Liberation Mono</family>
+        <pointsize>12</pointsize>
        </font>
       </property>
       <property name="text">
@@ -657,6 +660,7 @@
       <property name="font">
        <font>
         <family>Liberation Mono</family>
+        <pointsize>12</pointsize>
        </font>
       </property>
       <property name="text">
@@ -669,12 +673,13 @@
         <x>420</x>
         <y>210</y>
         <width>51</width>
-        <height>31</height>
+        <height>41</height>
        </rect>
       </property>
       <property name="font">
        <font>
         <family>Liberation Mono</family>
+        <pointsize>12</pointsize>
        </font>
       </property>
       <property name="text">
@@ -687,12 +692,13 @@
         <x>360</x>
         <y>210</y>
         <width>51</width>
-        <height>31</height>
+        <height>41</height>
        </rect>
       </property>
       <property name="font">
        <font>
         <family>Liberation Mono</family>
+        <pointsize>12</pointsize>
        </font>
       </property>
       <property name="text">
@@ -705,7 +711,7 @@
         <x>60</x>
         <y>210</y>
         <width>291</width>
-        <height>31</height>
+        <height>41</height>
        </rect>
       </property>
       <property name="font">
@@ -751,8 +757,8 @@
      <widget class="QSlider" name="bandwidthSlider">
       <property name="geometry">
        <rect>
-        <x>7</x>
-        <y>230</y>
+        <x>10</x>
+        <y>250</y>
         <width>450</width>
         <height>16</height>
        </rect>
@@ -767,8 +773,8 @@
      <widget class="QSlider" name="frequencySlider">
       <property name="geometry">
        <rect>
-        <x>7</x>
-        <y>160</y>
+        <x>10</x>
+        <y>180</y>
         <width>450</width>
         <height>16</height>
        </rect>
@@ -786,8 +792,8 @@
      <widget class="QLCDNumber" name="centerFreqLcdNumber">
       <property name="geometry">
        <rect>
-        <x>320</x>
-        <y>130</y>
+        <x>323</x>
+        <y>150</y>
         <width>91</width>
         <height>31</height>
        </rect>
@@ -808,8 +814,8 @@
      <widget class="QLCDNumber" name="bandwidthLcdNumber">
       <property name="geometry">
        <rect>
-        <x>320</x>
-        <y>200</y>
+        <x>323</x>
+        <y>220</y>
         <width>91</width>
         <height>31</height>
        </rect>
@@ -827,8 +833,8 @@
      <widget class="QLabel" name="centerFreqLabel">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>140</y>
+        <x>13</x>
+        <y>160</y>
         <width>110</width>
         <height>19</height>
        </rect>
@@ -846,8 +852,8 @@
      <widget class="QLabel" name="bandwidthLabel">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>210</y>
+        <x>13</x>
+        <y>230</y>
         <width>110</width>
         <height>19</height>
        </rect>
@@ -868,12 +874,13 @@
         <x>10</x>
         <y>20</y>
         <width>450</width>
-        <height>100</height>
+        <height>111</height>
        </rect>
       </property>
       <property name="font">
        <font>
         <family>Liberation Sans</family>
+        <pointsize>12</pointsize>
        </font>
       </property>
       <property name="text">
@@ -892,6 +899,7 @@
       <property name="font">
        <font>
         <family>Liberation Sans</family>
+        <pointsize>12</pointsize>
        </font>
       </property>
       <property name="text">
@@ -901,8 +909,8 @@
      <widget class="QLabel" name="centerFreqUnitsLabel">
       <property name="geometry">
        <rect>
-        <x>420</x>
-        <y>140</y>
+        <x>423</x>
+        <y>160</y>
         <width>41</width>
         <height>19</height>
        </rect>
@@ -920,8 +928,8 @@
      <widget class="QLabel" name="bandwidthUnitsLabel">
       <property name="geometry">
        <rect>
-        <x>420</x>
-        <y>210</y>
+        <x>423</x>
+        <y>230</y>
         <width>41</width>
         <height>19</height>
        </rect>
@@ -937,9 +945,32 @@
       </property>
      </widget>
     </widget>
+    <widget class="QWidget" name="statusTab">
+     <attribute name="title">
+      <string>Status</string>
+     </attribute>
+     <widget class="QPlainTextEdit" name="logViewer">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>120</y>
+        <width>461</width>
+        <height>161</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Liberation Mono</family>
+        <pointsize>9</pointsize>
+       </font>
+      </property>
+      <property name="backgroundVisible">
+       <bool>false</bool>
+      </property>
+     </widget>
+    </widget>
    </widget>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <resources/>
  <connections/>

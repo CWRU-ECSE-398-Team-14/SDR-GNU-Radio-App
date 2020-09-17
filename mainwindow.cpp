@@ -9,7 +9,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     // ==== radio thread things ====
     radio = new Radio(this);
-    radio->setupRadio(); // basic setup
     radioStatus = new RadioStatus(); // create this to avoid any null pointer issues
 
     // connect radio messageReady signal to MainWindow slot handleMessage
@@ -17,7 +16,13 @@ MainWindow::MainWindow(QWidget *parent)
 
     // connect radio statusUpdate signal to this object's handleStatusUpdate slot
     connect(radio, &Radio::statusUpdate, this, &MainWindow::handleStatusUpdate);
+
+    // connect radio debug signal to main window's logMessage slot
+    connect(radio, &Radio::debugMessage, this, &MainWindow::logMessage);
+
     connect(radio, &Radio::finished, radio, &QObject::deleteLater);
+
+    radio->setupRadio(); // basic setup
     radio->start(); // start radio thread
 
 
@@ -56,8 +61,7 @@ MainWindow::~MainWindow()
  * @param msg
  */
 void MainWindow::handleMessage(const QString& msg){
-    ui->statusbar->clearMessage();
-    ui->statusbar->showMessage(msg);
+    this->logMessage(msg);
     qDebug() << msg << Qt::endl;
 }
 
@@ -75,7 +79,7 @@ void MainWindow::handleWaterfall(const QPixmap& pixmap){
  */
 void MainWindow::handleStatusUpdate(const RadioStatus& status){
     this->radioStatus = new RadioStatus(status);
-    ui->statusbar->showMessage("SDR dongle status: " + radioStatus->statusStr);
+    this->logMessage("SDR dongle status: " + radioStatus->statusStr);
 }
 
 void MainWindow::updateFreqDisplay(double freq){
@@ -150,6 +154,14 @@ void MainWindow::checkKeypadEntry(){
         }
         this->keypadEntry.clear(); // clear keypad entries so we can record a new input
     }
+}
+
+/**
+ * @brief MainWindow::logMessage display message in the log viewer window
+ */
+void MainWindow::logMessage(const QString& text){
+    QDateTime dt = QDateTime::currentDateTime();
+    ui->logViewer->appendPlainText(QString("[%1]: %2").arg(dt.toString()).arg(text));
 }
 
 void MainWindow::on_frequencySlider_actionTriggered(int action)

@@ -222,21 +222,25 @@ void Radio::setupRadio(){
         amqp->printConnect();
 
     }catch(AMQPException e){
+        emit debugMessage(QString(e.getMessage().c_str()));
         qDebug() << e.getMessage().c_str() << Qt::endl;
     }
 
     // load channels from file
     if(QFile::exists(this->channelSavePath)){
+        emit debugMessage("Loading channels from file...");
         qDebug() << "Loading channels from file..." << Qt::endl;
         QFile file(this->channelSavePath);
+        file.open(QIODevice::ReadOnly);
         QJsonArray values = QJsonDocument::fromJson(file.readAll()).array();
+        file.close();
 
         if(values.size() > 0){
             for(auto value : values){
                 Channel::fromJson( value.toObject() );
             }
         }
-
+        emit debugMessage(QString("Loaded %1 channels from file").arg(this->channels.size()));
         qDebug() << "Loaded " << this->channels.size() << " channels from file" << Qt::endl;
      }
 
@@ -418,6 +422,7 @@ void Radio::addChannel(const Channel& ch){
  */
 void Radio::saveChannels(){
     if(channels.size() > 0){
+        emit debugMessage("Saving channels...");
         qDebug() << "Saving channels..." << Qt::endl;
         QJsonArray arr;
         for(auto channel : this->channels){
@@ -428,6 +433,7 @@ void Radio::saveChannels(){
         QTextStream out(&f);
         QJsonDocument json(arr);
         out << json.toJson();
+        f.close();
     }
 }
 
@@ -523,6 +529,7 @@ void Radio::run(){
                 this->configMtx->unlock();
             }
         }catch(AMQPException e){
+            emit debugMessage(QString(e.getMessage().c_str()));
             qDebug() << e.getMessage().c_str() << Qt::endl;
         }
         QThread::usleep(1000); // 1 ms sleep

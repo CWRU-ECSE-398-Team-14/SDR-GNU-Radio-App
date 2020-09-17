@@ -142,6 +142,7 @@ private:
 
 signals:
     void messageReady(const QString& msg);
+    void debugMessage(const QString& msg);
     void fftReady(const QVector<double>& fft);
     void statusUpdate(const RadioStatus& status);
 };

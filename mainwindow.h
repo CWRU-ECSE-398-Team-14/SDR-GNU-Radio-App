@@ -16,13 +16,16 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-private slots:
+public slots:
     void handleMessage(const QString &);
 
     void handleWaterfall(const QPixmap &);
 
     void handleStatusUpdate(const RadioStatus &);
 
+    void logMessage(const QString &);
+
+private slots:
     void updateFreqDisplay(double freq);
 
     void checkKeypadEntry();
