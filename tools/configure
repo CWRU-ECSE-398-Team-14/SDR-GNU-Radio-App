@@ -1,0 +1,143 @@
+#!/bin/bash
+
+# basic dependencies
+DEPENDS=(
+  
+)
+
+# development packages
+DEV_PACKAGES=(
+    libfontconfig1-dev
+    libfreetype6-dev
+    libx11-dev
+    libx11-xcb-dev
+    libxext-dev
+    libxfixes-dev
+    libxi-dev
+    libxrender-dev
+    libxcb1-dev
+    libxcb-glx0-dev
+    libxcb-keysyms1-dev
+    libxcb-image0-dev
+    libxcb-shm0-dev
+    libxcb-icccm4-dev
+    libxcb-sync0-dev
+    libxcb-xfixes0-dev
+    libxcb-shape0-dev
+    libxcb-randr0-dev
+    libxcb-render-util0-dev
+    libxcd-xinerama-dev
+    libxkbcommon-dev
+    libxkbcommon-x11-dev
+)
+
+sudo apt update
+
+sudo apt install ${DEPENDS[@]} # install basic dependencies
+
+sudo apt install ${DEV_PACKAGES[@]} # install all development packages
+
+# Check for Ninja
+if [[ $(dpkg-query -W --showformat='${Status}\n' ninja-build) != "install ok installed" ]]
+then
+  echo "==== Installing Ninja ===="
+	sudo apt-get install ninja-build
+fi
+
+# check for OpenSSL
+if [[ $(dpkg-query -W --showformat='${Status}\n' libssl-dev) != "install ok installed" ]]
+then
+	echo "==== Installing libssl-dev ===="
+	sudo apt-get install libssl-dev
+fi
+
+
+PLATFORM=""
+# get platform type
+if [[ "$OSTYPE" == "linux-gnueabihf"* ]]
+then
+	# cmake configs assuming raspberry pi
+	echo "Linux GNU eabihf detected"	
+	PLATFORM="$HOSTTYPE-$OSTYPE"
+	echo $PLATFORM
+fi
+
+# if this is a Raspberry Pi
+if [[ $(grep -q BCM2711 /proc/cpuinfo) -eq 0 ]]
+then
+	echo "This is a Raspberry Pi."
+	echo $PLATFORM
+
+	# expected Qt install location
+	QT_INSTALL="/usr/local/Qt-5.15.0"
+
+	QMAKE_PATH="$QT_INSTALL/bin/qmake"
+	
+
+	if test -x $QMAKE_PATH; then
+		echo "==== qmake found ===="
+	else
+		echo "**** qmake not found in $QT_INSTALL/bin ****"
+		exit 1
+	fi
+  
+  BUILD_PATH=../build
+  SOURCE_PATH=..
+
+	cmake -GNinja -B$BUILD_PATH -S$SOURCE_PATH -DCMAKE_BUILD_TYPE:String=Debug \
+    -DBUILD_EXAMPLES:BOOL=ON \
+    -DBUILD_SHARED_LIBS:BOOL=ON \
+    -DBUILD_STATIC_LIBS:BOOL=ON \
+    -DBUILD_TESTS:BOOL=ON \
+    -DCMAKE_ADDR2LINE:STRING=/usr/bin/addr2line \
+    -DCMAKE_AR:STRING=/usr/bin/ar \
+    -DCMAKE_CXX_COMPILER:STRING=/usr/bin/g++ \
+    -DCMAKE_CXX_COMPILER_AR:FILEPATH=/usr/bin/gcc-ar-8 \
+    -DCMAKE_CXX_COMPILER_RANLIB:FILEPATH=/usr/bin/gcc-ranlib-8 \
+    -DCMAKE_CXX_FLAGS_DEBUG:STRING=-g \
+    -DCMAKE_CXX_FLAGS_MINSIZEREL:STRING="-Os -DNDEBUG" \
+    -DCMAKE_CXX_FLAGS_RELEASE:STRING="-O3 -DNDEBUG" \
+    -DCMAKE_CXX_FLAGS_RELWITHDEBINFO:STRING="-O2 -g -DNDEBUG" \
+    -DCMAKE_C_COMPILER:STRING=/usr/bin/gcc \
+    -DCMAKE_C_COMPILER_AR:FILEPATH=/usr/bin/gcc-ar-8 \
+    -DCMAKE_C_COMPILER_RANLIB:FILEPATH=/usr/bin/gcc-ranlib-8 \
+    -DCMAKE_C_FLAGS_DEBUG:STRING=-g \
+    -DCMAKE_C_FLAGS_MINSIZEREL:STRING="-Os -DNDEBUG" \
+    -DCMAKE_C_FLAGS_RELEASE:STRING="-O3 -DNDEBUG" \
+    -DCMAKE_C_FLAGS_RELWITHDEBINFO:STRING="-O2 -g -DNDEBUG" \
+    -DCMAKE_INSTALL_BINDIR:PATH=bin \
+    -DCMAKE_INSTALL_DATAROOTDIR:PATH=share \
+    -DCMAKE_INSTALL_INCLUDEDIR:PATH=include \
+    -DCMAKE_INSTALL_LIBDIR:PATH=lib/$PLATFORM \
+    -DCMAKE_INSTALL_LIBEXECDIR:PATH=libexec \
+    -DCMAKE_INSTALL_LOCALSTATEDIR:PATH=var \
+    -DCMAKE_INSTALL_OLDINCLUDEDIR:PATH=/usr/include \
+    -DCMAKE_INSTALL_SBINDIR:PATH=sbin \
+    -DCMAKE_LINKER:FILEPATH=/usr/bin/ld \
+    -DCMAKE_NM:FILEPATH=/usr/bin/nm \
+    -DCMAKE_OBJCOPY:FILEPATH=/usr/bin/objcopy \
+    -DCMAKE_OBJDUMP:FILEPATH=/usr/bin/objdump \
+    -DCMAKE_PREFIX_PATH:STRING=$QT_INSTALL \
+    -DCMAKE_RANLIB:FILEPATH=/usr/bin/ranlib \
+    -DCMAKE_READELF:FILEPATH=/usr/bin/readelf \
+    -DCMAKE_STRIP:FILEPATH=/usr/bin/strip \
+    -DQT_DIR:PATH=$QT_INSTALL/lib/cmake/Qt5 \
+    -DQt5Core_DIR:PATH=$QT_INSTALL/lib/cmake/Qt5Core \
+    -DQt5Gui_DIR:PATH=$QT_INSTALL/lib/cmake/Qt5Gui \
+    -DQt5_DIR:PATH=$QT_INSTALL/lib/cmake/Qt5 \
+    -DQT_QMAKE_EXECUTABLE:STRING=$QMAKE_PATH \
+    -DQt5Widgets_DIR:PATH=$QT_INSTALL/lib/cmake/Qt5Widgets \
+    -DQt5LinuistTools_DIR:PATH=$QT_INSTALL/lib/cmake/Qt5LinguistTools \
+    -DENABLE_SSL_SUPPORT:BOOL=ON \
+    -DOPENSSL_CRYPTO_LIBRARY:FILEPATH=/usr/lib/$PLATFORM/libcrypto.so \
+    -DOPENSSL_INCLUDE_DIR:PATH=/usr/include \
+    -DOPENSSL_SSL_LIBRARY:FILEPATH=/usr/lib/$PLATFORM/libssl.so \
+    -DQt5Gui_DIR:PATH=$QT_INSTALL/lib/cmake/Qt5Gui \
+    -DPKG_CONFIG_EXECUTABLE:FILEPATH=/usr/bin/pkg-config \
+    -DCMAKE_INSTALL_PREFIX:STRING=/usr/local
+    #-DCMAKE_BUILD_WITH_INSTALL_RPATH:BOOL=TRUE \
+
+fi
+
+
+

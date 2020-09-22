@@ -1,0 +1,15 @@
+[Unit]
+Description=Start the SDR GNU radio application
+After=multi-user.target
+
+
+[Service]
+Type=simple
+Restart=always
+User=sdr
+Group=sdr
+ExecStart=/usr/local/bin/start_sdr_gnu_radio.sh
+
+
+[Install]
+WantedBy=multi-user.target
