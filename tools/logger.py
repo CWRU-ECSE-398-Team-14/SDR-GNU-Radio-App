@@ -24,14 +24,14 @@ def callback(ch, method, properties, body):
             # do things
             msg = json.loads(body)
             if 'timestamp' in msg.keys() and 'message' in msg.keys():
-                f.write("{:.6f} : {}".format(msg['timestamp'], msg['message']))
+                f.write("{:.6f} : {}\n".format(msg['timestamp'], msg['message']))
         else:
-            f.write("{:.6f} : {}".format(time.time(), body))
+            f.write("{:.6f} : {}\n".format(time.time(), body))
         
         f.close()
 
-    except IOError:
-        print("Failed to write to log file")
+    except IOError as e:
+        print("Failed to write to log file {}: {}".format(log_path, e.strerror) )
 
 
 def main():
@@ -42,9 +42,9 @@ def main():
 
     channel.exchange_declare(exchange='logs', exchange_type='fanout')
 
-    channel.queue_declare(queue='event_logs', exclusive=True) # delete when connection closes
+    channel.queue_declare(queue='event_logs') # delete when connection closes
 
-    channel.basic_consume(queue='event_logs', auto_ack=True, on_message_callback=callback)
+    channel.basic_consume(queue='event_logs', auto_ack=False, on_message_callback=callback)
 
     channel.start_consuming()
 

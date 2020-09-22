@@ -20,6 +20,9 @@ FONTS_DIR=/usr/share/fonts/truetype
 SOURCE_DIR=$(readlink -f "..")
 
 # ==== GUI ====
+# stop the service if it's running
+sudo systemctl stop sdrgnuradio.service
+
 # move executable to a sensible location
 sudo cp $SOURCE_DIR/build/sdr_gnu_radio_app /usr/local/bin
 
@@ -27,6 +30,7 @@ sudo cp $SOURCE_DIR/build/sdr_gnu_radio_app /usr/local/bin
 sudo cp $SOURCE_DIR/tools/start_sdr_gnu_radio.sh /usr/local/bin
 sudo chown sdr /usr/local/bin/start_sdr_gnu_radio.sh
 sudo chmod 755 /usr/local/bin/start_sdr_gnu_radio.sh
+sudo cp $SOURCE_DIR/tools/sdrgnuradio.service /lib/systemd/system
 
 
 # ==== LOGGER ====
@@ -42,13 +46,16 @@ if [[ ! -d "/var/log/sdr" ]]; then
   sudo mkdir /var/log/sdr
 fi
 
+# set necessary permissions
+sudo chmod 775 /var/log/sdr
+
 # set correct group of log directory
 if [[ $(stat -c '%G' /var/log/sdr) != "$USER" ]]; then
   sudo chgrp $USER /var/log/sdr
 fi
 
 # check if log file exists and group is correct
-if [[ -f "/var/log/sdr/sdr.log"]]; then
+if [[ -f "/var/log/sdr/sdr.log" ]]; then
   if [[ $(stat -c '%G' /var/log/sdr/sdr.log) != "$USER" ]]; then
     sudo chgrp $USER /var/log/sdr/sdr.log
   fi
