@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include "radio.h"
 #include "waterfall.h"
+#include "AMQPcpp.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -24,6 +25,8 @@ public slots:
     void handleStatusUpdate(const RadioStatus &);
 
     void logMessage(const QString &);
+
+    void logEvent(const QString &);
 
 private slots:
     void updateFreqDisplay(double freq);
@@ -78,17 +81,26 @@ private slots:
 
     void on_prevChannelBtn_clicked();
 
+    void on_squelchSlider_actionTriggered(int action);
+
+    void on_searchBtn_clicked();
+
 private:
     Ui::MainWindow *ui;
     Radio* radio;
     Waterfall* waterfall;
     QStringList keypadEntry;
     RadioStatus* radioStatus;
+    AMQP* amqp;
+    AMQPExchange * log_ex;
+    void initWidgets();
 
 signals:
     void changeFrequency(double freq);
     void changeBandwidth(double bw);
     void changeVolume(double vol);
+    void changeSquelch(double squelch);
+    void changeSearch(bool search);
 
 };
 #endif // MAINWINDOW_H

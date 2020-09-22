@@ -34,6 +34,8 @@ RadioConfig::RadioConfig(const RadioConfig& conf){
     this->scanStartFreq     = conf.scanStartFreq;
     this->scanStopFreq      = conf.scanStopFreq;
     this->scanStep          = conf.scanStep;
+    this->squelch           = conf.squelch;
+    this->beginSearch       = conf.beginSearch;
     this->update            = conf.update;
     this->protocolStr       = conf.protocolStr;
 }
@@ -82,6 +84,8 @@ RadioStatus::RadioStatus(const RadioStatus& status){
     this->frequency = status.frequency;
     this->signalPower = status.signalPower;
     this->name      = status.name;
+    this->channelName = status.channelName;
+    this->isSearching = status.isSearching;
 }
 
 
@@ -196,12 +200,20 @@ void Radio::setupRadio(){
         this->channelSavePath = sys.value("HOME") + "/.channels.json";
     }
 
+    if(sys.contains("GNU_RADIO_PROCESS_PATH")){
+        QString fname = sys.value("GNU_RADIO_PROCESS_PATH");
+        if(QFile::exists(fname)){
+            this->radioProgramPath = fname;
+            emit debugMessage(QString("GNU_RADIO_PROCESS_PATH = %1").arg(this->radioProgramPath));
+        }
+    }
+
     // create the GNU radio process
     this->radioProcess->start("python3", QStringList() << this->radioProgramPath << this->radioProgramArgs);
     this->radioProcess->waitForStarted(5000); // allow 5 seconds to start
 
     this->radioProcess->setReadChannel(QProcess::StandardOutput);
-    qDebug() << this->radioProcess->readLine() << Qt::endl;
+    emit debugMessage(QString("Started GNU radio process: %1").arg(QString(this->radioProcess->readLine())));
 
     // create the AMQP objects
     try{
@@ -341,7 +353,23 @@ void Radio::setScanStep(double freq){
     this->radioConfig->packets.append(QPair<QString, QJsonValue>("scanStep", QJsonValue(freq)));
     this->configMtx->unlock();
 }
-
+void Radio::setSquelch(double squelch){
+    if(squelch > 1.0){
+        squelch = 1.0;
+    }else if(squelch < 0.0){
+        squelch = 0.0;
+    }
+    this->configMtx->lock();
+    this->radioConfig->squelch = squelch;
+    this->radioConfig->packets.append(QPair<QString, QJsonValue>("squelch", QJsonValue(squelch)));
+    this->configMtx->unlock();
+}
+void Radio::setSearch(bool search){
+    this->configMtx->lock();
+    this->radioConfig->beginSearch = search;
+    this->radioConfig->packets.append(QPair<QString, QJsonValue>("beginSearch", QJsonValue(search)));
+    this->configMtx->unlock();
+}
 /**
  * @brief Radio::configureRadio slot for updating radioConfig
  * @param config
@@ -368,6 +396,12 @@ void Radio::updateStatus(const QJsonDocument& jsonDoc){
             this->radioStatus->frequency = json.value(s).toDouble();
         }else if(s.compare("signalPower") == 0){
             this->radioStatus->signalPower = json.value(s).toDouble();
+        }else if(s.compare("name") == 0){
+            this->radioStatus->name = json.value(s).toString();
+        }else if(s.compare("channelName") == 0){
+            this->radioStatus->channelName = json.value(s).toString();
+        }else if(s.compare("isSearching") == 0){
+            this->radioStatus->isSearching = json.value(s).toBool();
         }
     }
     // this might be a bad thing to do maybe? cuz radioStatus is private?

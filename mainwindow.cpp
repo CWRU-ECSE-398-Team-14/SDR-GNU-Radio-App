@@ -7,6 +7,15 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    // ==== rabbitMQ things ====
+    this->amqp = new AMQP("localhost");
+
+    // log messages exchange to publish log messages to
+    this->log_ex = amqp->createExchange("logs");
+    this->log_ex->Declare("logs", "fanout");
+
+    this->logEvent("GUI setup started");
+
     // ==== radio thread things ====
     radio = new Radio(this);
     radioStatus = new RadioStatus(); // create this to avoid any null pointer issues
@@ -27,6 +36,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     // ==== waterfall object ====
+    // create a waterfall object
     waterfall = new Waterfall(this, ui->waterfallLabel->width(), ui->waterfallLabel->height());
 
     // connect waterfalls pixmapReady signal to main window's handleWaterfall slot
@@ -35,18 +45,18 @@ MainWindow::MainWindow(QWidget *parent)
     // connect radio's fftReady signal to waterfall's appendFFT slot
     connect(radio, &Radio::fftReady, waterfall, &Waterfall::appendFFT);
 
-    // initialize widgets
-    ui->centerFreqLcdNumber->display(QString("%1").arg(this->radio->getCenterFreq()/1.0e6, 0, 'f', 1));
-    ui->bandwidthLcdNumber->display(QString("%1").arg(this->radio->getBandwidth()/1.0e3, 0, 'f', 1));
-
-    // connect widget signals to radio slots
+    // ==== MainWindow signals to Radio slots ====
+    // connect mainwindow signals to radio slots
     connect(this, &MainWindow::changeFrequency, radio, &Radio::setCenterFreq);
     connect(this, &MainWindow::changeBandwidth, radio, &Radio::setBandwidth);
     connect(this, &MainWindow::changeVolume, radio, &Radio::setVolume);
+    connect(this, &MainWindow::changeSquelch, radio, &Radio::setSquelch);
+    connect(this, &MainWindow::changeSearch, radio, &Radio::setSearch);
 
-    // ICONS
+    // ==== initialize widgets ====
+    this->initWidgets();
 
-
+    this->logEvent("GUI setup complete");
 }
 
 MainWindow::~MainWindow()
@@ -54,6 +64,20 @@ MainWindow::~MainWindow()
     delete ui;
     delete radio;
     delete waterfall;
+}
+
+/**
+ * @brief MainWindow::initWidgets Initialize widgets to default values
+ */
+void MainWindow::initWidgets(){
+    // ICONS
+
+    // initialize widgets
+    ui->centerFreqLcdNumber->display(QString("%1").arg(this->radio->getCenterFreq()/1.0e6, 0, 'f', 1));
+    ui->bandwidthLcdNumber->display(QString("%1").arg(this->radio->getBandwidth()/1.0e3, 0, 'f', 1));
+    ui->volumeSlider->setValue(ui->volumeSlider->maximum()/2);
+    ui->squelchSlider->setValue(ui->squelchSlider->maximum()/2);
+
 }
 
 /**
@@ -158,10 +182,36 @@ void MainWindow::checkKeypadEntry(){
 
 /**
  * @brief MainWindow::logMessage display message in the log viewer window
+ * @param text message to print along with timestamp
+ * this will also call logEvent to send the message to the logger service
  */
 void MainWindow::logMessage(const QString& text){
     QDateTime dt = QDateTime::currentDateTime();
+
+    // print to status pane
     ui->logViewer->appendPlainText(QString("[%1]: %2").arg(dt.toString()).arg(text));
+
+    // send to logger service
+    this->logEvent(text);
+}
+
+/**
+ * @brief MainWindow::logEvent send a timestamped event message to the logger service
+ * @param msg message to print as the event description
+ */
+void MainWindow::logEvent(const QString &msg){
+    QDateTime dt = QDateTime::currentDateTime();
+
+    // publish to rabbitMQ
+    QJsonObject json;
+    json.insert("timestamp", QJsonValue(double(dt.toMSecsSinceEpoch())/1000.0));
+    json.insert("message", QJsonValue(msg));
+    QJsonDocument doc(json);
+    QByteArray arr = doc.toJson(QJsonDocument::Compact);
+    this->log_ex->setHeader("Delivery-mode", 2);
+    this->log_ex->setHeader("Content-type", "application/json");
+    this->log_ex->setHeader("Content-encoding", "UTF-8");
+    this->log_ex->Publish(arr.data(), arr.size(), "");
 }
 
 void MainWindow::on_frequencySlider_actionTriggered(int action)
@@ -350,5 +400,27 @@ void MainWindow::on_nextChannelBtn_clicked()
 
 void MainWindow::on_prevChannelBtn_clicked()
 {
+
+}
+
+void MainWindow::on_squelchSlider_actionTriggered(int action)
+{
+    emit changeSquelch(map(ui->squelchSlider->value(), double(ui->squelchSlider->minimum()), double(ui->squelchSlider->maximum()), 0.0, 1.0));
+}
+
+void MainWindow::on_searchBtn_clicked()
+{
+    // if not searching currently
+    if(ui->searchBtn->text().compare("Search") == 0){
+        // start searching
+        emit changeSearch(true);
+        ui->searchBtn->setText("Stop");
+    }else{
+        // stop searching
+        emit changeSearch(false);
+        ui->searchBtn->setText("Search");
+    }
+
+    // else
 
 }

@@ -36,6 +36,8 @@ public:
     double scanStartFreq    = 500000.0; // start scan frequency
     double scanStopFreq     = scanStartFreq + 1.0e6; // 1 MHz range
     double scanStep         = 12500.0;  // scan frequency step
+    double squelch          = 0.0;
+    bool   beginSearch      = false;
     bool update             = false;    // flag to indicate that the SDR needs to be updated with config info
     QVector<QPair<QString,QJsonValue>> packets;       // store packets to send out
     QString protocolStr     = "";
@@ -56,6 +58,8 @@ public:
     QString statusStr   = "";
     double frequency    = 0.0; // what the radio is actually tuned-in to
     double signalPower  = -std::numeric_limits<double>::max(); // smallest representable number, -inf so to speak
+    QString channelName = "";
+    bool isSearching    = false;
 };
 
 /**
@@ -100,6 +104,7 @@ public:
     double  getFrequency  () { return this->radioStatus->frequency; } // what freq is the radio tuned to
     double  getSignalPower() { return this->radioStatus->signalPower; }
     QString getName       () { return this->radioStatus->name; }
+    bool    isSearching   () { return this->radioStatus->isSearching; }
     void    setupRadio    ();
     QString radioProgramPath = "/home/adam/Documents/hello_world/rcv.py";
     QStringList radioProgramArgs = {""};
@@ -114,6 +119,8 @@ public slots:
     void    setStopFreq     (double freq);
     void    setStepSize     (double freq);
     void    setScanStep     (double freq);
+    void    setSquelch      (double squelch);
+    void    setSearch       (bool search);
     void    configureRadio  (const RadioConfig& config);
     void    updateStatus    (const QJsonDocument& json);
     void    setProtocol     (const QString& str);
