@@ -93,6 +93,7 @@ private:
     RadioStatus* radioStatus;
     AMQP* amqp;
     AMQPExchange * log_ex;
+    AMQPQueue * log_qu;
     void initWidgets();
 
 signals:

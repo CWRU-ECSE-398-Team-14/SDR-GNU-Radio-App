@@ -13,6 +13,9 @@ MainWindow::MainWindow(QWidget *parent)
     // log messages exchange to publish log messages to
     this->log_ex = amqp->createExchange("logs");
     this->log_ex->Declare("logs", "fanout");
+    this->log_qu = amqp->createQueue("event_logs");  // queue for radio config messages
+    this->log_qu->Declare();
+    this->log_qu->Bind("logs", ""); // bind to exchange named radio_fanout, no key
 
     this->logEvent("GUI setup started");
 
