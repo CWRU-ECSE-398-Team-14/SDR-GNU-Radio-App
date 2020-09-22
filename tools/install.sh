@@ -26,33 +26,73 @@ sudo systemctl stop sdrgnuradio.service
 # move executable to a sensible location
 sudo cp $SOURCE_DIR/build/sdr_gnu_radio_app /usr/local/bin
 
-# move systemd service file and start script to correct locations
+# generate the systemd service file
+echo "[Unit]
+Description=the SDR GNU Radio GUI application
+After=multi-user.target
+
+
+[Service]
+Type=simple
+Restart=always
+User=$USER
+Group=$USER
+ExecStart=/usr/local/bin/start_sdr_gnu_radio.sh
+
+
+[Install]
+WantedBy=multi-user.target" > $SOURCE_DIR/tools/sdrgnuradio.service
+
+# copy start script to correct locations
 sudo cp $SOURCE_DIR/tools/start_sdr_gnu_radio.sh /usr/local/bin
-sudo chown sdr /usr/local/bin/start_sdr_gnu_radio.sh
+sudo chown $USER /usr/local/bin/start_sdr_gnu_radio.sh
 sudo chmod 755 /usr/local/bin/start_sdr_gnu_radio.sh
-sudo cp $SOURCE_DIR/tools/sdrgnuradio.service /lib/systemd/system
+
+# move systemd service file
+sudo mv $SOURCE_DIR/tools/sdrgnuradio.service /lib/systemd/system
 
 
 # ==== LOGGER ====
+# stop the service if it's running
+sudo systemctl stop sdrlogger.service
 
-# move systemd service file and script to sensible locations
+# generate the systemd service file
+echo "[Unit]
+Description=Logger for the SDR GNU radio application
+After=multi-user.target
+
+
+[Service]
+Type=simple
+Restart=always
+User=$USER
+Group=$USER
+ExecStart=/usr/local/bin/logger.py
+
+
+[Install]
+WantedBy=multi-user.target" > $SOURCE_DIR/tools/sdrlogger.service
+
+# copy start script to sensible locations
 sudo cp $SOURCE_DIR/tools/logger.py /usr/local/bin
-sudo chown sdr /usr/local/bin/logger.py
+sudo chown $USER /usr/local/bin/logger.py
 sudo chmod 755 /usr/local/bin/logger.py
-sudo cp $SOURCE_DIR/tools/sdrlogger.service /lib/systemd/system
+
+# move systemd service file
+sudo mv $SOURCE_DIR/tools/sdrlogger.service /lib/systemd/system
 
 # create log directory
 if [[ ! -d "/var/log/sdr" ]]; then
   sudo mkdir /var/log/sdr
 fi
 
-# set necessary permissions
-sudo chmod 775 /var/log/sdr
-
 # set correct group of log directory
 if [[ $(stat -c '%G' /var/log/sdr) != "$USER" ]]; then
   sudo chgrp $USER /var/log/sdr
 fi
+
+# set necessary permissions
+sudo chmod 775 /var/log/sdr
 
 # check if log file exists and group is correct
 if [[ -f "/var/log/sdr/sdr.log" ]]; then
@@ -64,7 +104,7 @@ fi
 
 # activate the new service(s)
 sudo systemctl daemon-reload
-sudo systemctl enable sdrlogger.service
 sudo systemctl enable sdrgnuradio.service
+sudo systemctl enable sdrlogger.service
 
 echo "Install done. Reboot required."
