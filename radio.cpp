@@ -208,12 +208,13 @@ void Radio::setupRadio(){
         }
     }
 
-    // create the GNU radio process
-    this->radioProcess->start("python3", QStringList() << this->radioProgramPath << this->radioProgramArgs);
+    // start the GNU radio process
+    // std output ready signal -> readRadioProcessStdout
+    connect(this->radioProcess, &QProcess::readyReadStandardOutput, this, &Radio::readRadioProcessStdout);
+    this->radioProcess->start(this->radioProgramPath, QStringList() << this->radioProgramArgs);
     this->radioProcess->waitForStarted(5000); // allow 5 seconds to start
 
-    this->radioProcess->setReadChannel(QProcess::StandardOutput);
-    emit debugMessage(QString("Started GNU radio process: %1").arg(QString(this->radioProcess->readLine())));
+    emit debugMessage(QString("Started GNU radio process"));
 
     // create the AMQP objects
     try{
@@ -489,6 +490,13 @@ void Radio::prevChannel(){
             currentChannel--;
         }
     }
+}
+
+/**
+ * @brief Radio::readRadioProcessStdout reads stdout and emits as a debugMessage signal
+ */
+void Radio::readRadioProcessStdout(){
+    emit debugMessage(QString("GNU Radio Process: %1").arg(QString(this->radioProcess->readAllStandardOutput())));
 }
 
 /**

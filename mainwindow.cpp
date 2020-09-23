@@ -55,6 +55,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::changeVolume, radio, &Radio::setVolume);
     connect(this, &MainWindow::changeSquelch, radio, &Radio::setSquelch);
     connect(this, &MainWindow::changeSearch, radio, &Radio::setSearch);
+    connect(this, &MainWindow::changeScanStart, radio, &Radio::setStartFreq);
+    connect(this, &MainWindow::changeScanStop, radio, &Radio::setStopFreq);
+    connect(this, &MainWindow::changeScanStep, radio, &Radio::setScanStep);
 
     // ==== initialize widgets ====
     this->initWidgets();
@@ -163,17 +166,20 @@ void MainWindow::checkKeypadEntry(){
                 d = d * 1.0e6; // from MHz to Hz
                 d = constrain(d, this->radio->getMinFreq(), this->radio->getMaxFreq());
                 ui->scanStartBtn->setText(QString("%1MHz").arg(d/1.0e6, 0, 'f', 3));
+                emit changeScanStart(d);
             }else if(ui->scanStopBtn->isChecked()){
                 // modifying scan stop frequency
                 d = d * 1.0e6; // from MHz to Hz
                 d = constrain(d, this->radio->getMinFreq(), this->radio->getMaxFreq());
                 ui->scanStopBtn->setText(QString("%1MHz").arg(d/1.0e6, 0, 'f', 3));
+                emit changeScanStop(d);
             }else if(ui->scanStepBtn->isChecked()){
                 // modifying scan step frequency
                 d = d * 1.0e3; // from kHz to Hz
                 d = constrain(d, 1000.0, 1000000.0);
                 ui->scanStepBtn->setText(QString("%1kHz").arg(d/1.0e3, 0, 'f', 3));
-                this->radio->setScanStep(d);
+                emit changeScanStep(d);
+//                this->radio->setScanStep(d);
             }
 
         }else{

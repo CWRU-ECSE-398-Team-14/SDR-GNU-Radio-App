@@ -41,7 +41,7 @@
      <enum>QTabWidget::North</enum>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>3</number>
     </property>
     <widget class="QWidget" name="listenTab">
      <attribute name="title">
@@ -61,9 +61,6 @@
       </property>
       <property name="textFormat">
        <enum>Qt::RichText</enum>
-      </property>
-      <property name="pixmap">
-       <pixmap>img/Speaker_Icon.svg</pixmap>
       </property>
       <property name="scaledContents">
        <bool>true</bool>
@@ -1000,6 +997,11 @@
        <bool>false</bool>
       </property>
      </widget>
+    </widget>
+    <widget class="QWidget" name="setupTab">
+     <attribute name="title">
+      <string>Setup</string>
+     </attribute>
     </widget>
    </widget>
   </widget>

@@ -102,6 +102,9 @@ signals:
     void changeVolume(double vol);
     void changeSquelch(double squelch);
     void changeSearch(bool search);
+    void changeScanStart(double freq);
+    void changeScanStop(double freq);
+    void changeScanStep(double freq);
 
 };
 #endif // MAINWINDOW_H

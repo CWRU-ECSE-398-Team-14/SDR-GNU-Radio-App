@@ -128,6 +128,7 @@ public slots:
     void    saveChannels    ();
     void    nextChannel     ();
     void    prevChannel     ();
+    void    readRadioProcessStdout (void);
 
 private:
     RadioConfig * radioConfig;
