@@ -85,6 +85,8 @@ private slots:
 
     void on_searchBtn_clicked();
 
+    void on_squelchSlider_sliderReleased();
+
 private:
     Ui::MainWindow *ui;
     Radio* radio;

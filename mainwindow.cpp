@@ -414,7 +414,7 @@ void MainWindow::on_prevChannelBtn_clicked()
 
 void MainWindow::on_squelchSlider_actionTriggered(int action)
 {
-    emit changeSquelch(map(ui->squelchSlider->value(), double(ui->squelchSlider->minimum()), double(ui->squelchSlider->maximum()), 0.0, 1.0));
+    // emit changeSquelch(map(ui->squelchSlider->value(), double(ui->squelchSlider->minimum()), double(ui->squelchSlider->maximum()), 0.0, 1.0));
 }
 
 void MainWindow::on_searchBtn_clicked()
@@ -432,4 +432,9 @@ void MainWindow::on_searchBtn_clicked()
 
     // else
 
+}
+
+void MainWindow::on_squelchSlider_sliderReleased()
+{
+    emit changeSquelch(map(ui->squelchSlider->value(), double(ui->squelchSlider->minimum()), double(ui->squelchSlider->maximum()), 0.0, 1.0));
 }
