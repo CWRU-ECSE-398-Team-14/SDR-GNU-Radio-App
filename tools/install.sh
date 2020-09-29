@@ -111,7 +111,7 @@ sudo systemctl enable sdrlogger.service
 # edit sudoers file to allow no password when running iwlist wlan0 scan
 SUDOERS_FILE=$(sudo cat /etc/sudoers)
 if ! echo "$SUDOERS_FILE" | grep -qw "iwlist"; then
-  echo "$USER ALL = (root) NOPASSWD: iwlist wlan0 scan" | sudo EDITOR='tee -a' visudo
+  echo "$USER ALL=(root) NOPASSWD: /sbin/iwlist wlan0 scan" | sudo EDITOR='tee -a' visudo
 fi
 
 echo "Install done. Reboot required."
