@@ -53,6 +53,7 @@ class RadioStatus : public QObject
     Q_OBJECT
 public:
     explicit RadioStatus(QObject *parent = nullptr);
+    ~RadioStatus();
     RadioStatus(const RadioStatus& other); // copy constructor
     QString name        = "";
     QString statusStr   = "";

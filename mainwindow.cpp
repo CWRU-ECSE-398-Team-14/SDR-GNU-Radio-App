@@ -27,6 +27,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(radio, &Radio::messageReady, this, &MainWindow::handleMessage);
 
     // connect radio statusUpdate signal to this object's handleStatusUpdate slot
+    qRegisterMetaType<RadioStatus>("RadioStatus");
     connect(radio, &Radio::statusUpdate, this, &MainWindow::handleStatusUpdate);
 
     // connect radio debug signal to main window's logMessage slot
@@ -108,8 +109,8 @@ void MainWindow::handleWaterfall(const QPixmap& pixmap){
  * @param status RadioStatus object representing the radio's current status
  */
 void MainWindow::handleStatusUpdate(const RadioStatus& status){
-    this->radioStatus = new RadioStatus(status);
-    this->logMessage("SDR dongle status: " + radioStatus->statusStr);
+//    this->radioStatus = new RadioStatus(status);
+    this->logMessage("SDR dongle status: " + status.statusStr);
 }
 
 void MainWindow::updateFreqDisplay(double freq){

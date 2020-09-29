@@ -75,6 +75,9 @@ RadioStatus::RadioStatus(QObject *parent) :
 
 }
 
+RadioStatus::~RadioStatus(){
+
+}
 /**
  * @brief RadioStatus::RadioStatus copy constructor
  * @param status
@@ -405,8 +408,9 @@ void Radio::updateStatus(const QJsonDocument& jsonDoc){
             this->radioStatus->isSearching = json.value(s).toBool();
         }
     }
+    RadioStatus stat(*(this->radioStatus));
     // this might be a bad thing to do maybe? cuz radioStatus is private?
-    emit statusUpdate(*this->radioStatus);
+    emit statusUpdate(stat);
 }
 
 void Radio::setProtocol(const QString& str){
