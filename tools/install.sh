@@ -114,4 +114,16 @@ if ! echo "$SUDOERS_FILE" | grep -qw "iwlist"; then
   echo "$USER ALL=(root) NOPASSWD: /sbin/iwlist wlan0 scan" | sudo EDITOR='tee -a' visudo
 fi
 
+
+## create app data directory
+SHARED_DATA_DIR=/var/lib/sdrapp
+if [[ ! -d $SHARED_DATA_DIR ]]; then
+  sudo mkdir $SHARED_DATA_DIR
+fi
+sudo chgrp $USER $SHARED_DATA_DIR
+sudo chmod 775 $SHARED_DATA_DIR
+
+# copy over data files
+cp $SOURCE_DIR/tools/us_counties.csv $SHARED_DATA_DIR
+
 echo "Install done. Reboot required."
