@@ -34,6 +34,8 @@ if(ANDROID)
     main.cpp
     mainwindow.cpp
     mainwindow.h
+    parse_csv.h
+    parse_csv.cpp
     radio.cpp
     radio.h
     waterfall.cpp
@@ -46,6 +48,8 @@ else()
     main.cpp
     mainwindow.cpp
     mainwindow.h
+    parse_csv.h
+    parse_csv.cpp
     radio.cpp
     radio.h
     waterfall.cpp

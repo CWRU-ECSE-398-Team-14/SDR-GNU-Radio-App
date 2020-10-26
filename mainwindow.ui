@@ -41,7 +41,7 @@
      <enum>QTabWidget::North</enum>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>3</number>
     </property>
     <widget class="QWidget" name="listenTab">
      <attribute name="title">
@@ -916,12 +916,12 @@
        <string>No Spectral Data</string>
       </property>
      </widget>
-     <widget class="QLabel" name="waterfallFreqLabel">
+     <widget class="QLabel" name="waterfallFreqLabelLeft">
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>0</y>
-        <width>450</width>
+        <y>130</y>
+        <width>31</width>
         <height>20</height>
        </rect>
       </property>
@@ -973,6 +973,199 @@
        <string>kHz</string>
       </property>
      </widget>
+     <widget class="QSlider" name="freqFineAdjustSlider">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>0</y>
+        <width>450</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="maximum">
+       <number>450</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+     <widget class="QLabel" name="waterfallFreqLabelRight">
+      <property name="geometry">
+       <rect>
+        <x>430</x>
+        <y>130</y>
+        <width>31</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Liberation Sans</family>
+        <pointsize>12</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>0Hz</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="setupTab">
+     <attribute name="title">
+      <string>Setup</string>
+     </attribute>
+     <widget class="QListView" name="statesListView">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>20</y>
+        <width>171</width>
+        <height>121</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QListView" name="countiesListView">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>150</y>
+        <width>171</width>
+        <height>121</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="updateChannelsButton">
+      <property name="geometry">
+       <rect>
+        <x>200</x>
+        <y>10</y>
+        <width>141</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Update Channels</string>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="sortByComboBox">
+      <property name="geometry">
+       <rect>
+        <x>280</x>
+        <y>60</y>
+        <width>171</width>
+        <height>27</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="sortByLabel">
+      <property name="geometry">
+       <rect>
+        <x>200</x>
+        <y>60</y>
+        <width>71</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Sort By</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+     </widget>
+     <widget class="QListView" name="channelsListView">
+      <property name="geometry">
+       <rect>
+        <x>200</x>
+        <y>150</y>
+        <width>261</width>
+        <height>121</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="categoryComboBox">
+      <property name="geometry">
+       <rect>
+        <x>280</x>
+        <y>100</y>
+        <width>171</width>
+        <height>27</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="categoryLabel">
+      <property name="geometry">
+       <rect>
+        <x>200</x>
+        <y>100</y>
+        <width>71</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Category</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="addToScanListBtn">
+      <property name="geometry">
+       <rect>
+        <x>350</x>
+        <y>10</y>
+        <width>101</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Add to 
+Scan List</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="scanListTab">
+     <attribute name="title">
+      <string>Scan List</string>
+     </attribute>
+     <widget class="QListView" name="scanListListView">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>231</width>
+        <height>261</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="beginScanBtn">
+      <property name="geometry">
+       <rect>
+        <x>260</x>
+        <y>216</y>
+        <width>191</width>
+        <height>51</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Begin Scan</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="currentChannelInfoLbl">
+      <property name="geometry">
+       <rect>
+        <x>266</x>
+        <y>19</y>
+        <width>181</width>
+        <height>181</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>----</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+      </property>
+     </widget>
     </widget>
     <widget class="QWidget" name="statusTab">
      <attribute name="title">
@@ -997,11 +1190,6 @@
        <bool>false</bool>
       </property>
      </widget>
-    </widget>
-    <widget class="QWidget" name="setupTab">
-     <attribute name="title">
-      <string>Setup</string>
-     </attribute>
     </widget>
    </widget>
   </widget>

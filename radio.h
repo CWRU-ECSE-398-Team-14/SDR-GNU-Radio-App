@@ -11,9 +11,11 @@
 #include <QProcess>
 #include <QFile>
 #include <QTimer>
+#include <QDir>
 #include <cstdio>
 #include "AMQPcpp.h"
 #include <limits>
+#include "parse_csv.h"
 
 /**
  * @brief The RadioConfig class
@@ -29,6 +31,7 @@ public:
     double minFreq          = 0.5e6;
     double maxFreq          = 1.7e9;
     double centerFrequency  = 500000.0; // 500 kHz
+    double listenFrequency  = 500000.0; //
     double bandwidth        = 1000.0;   // 1 kHz
     double stepSize         = 100.0;    // step size for the FFT
     int fftPoints           = 450;      // number of points in the FFT
@@ -75,13 +78,56 @@ public:
     Channel(const Channel& ch);
     QJsonObject toJson();
     bool operator==(const Channel& ch);
-    QString name = "";
-    QString protocol = "";
-    double frequency = 0.0;
-    double bandwidth = 0.0;
+    QString name        = "";
+    int     id          = 0; // denoted by the DEC column
+    QString description = "";
+    QString protocol    = "";
+    QString mode        = "";
+    QString type        = "";
+    QString tag         = "";
+    QString alpha_tag   = "";
+    QString group       = "";
+    QString talkgroup   = "";
+    double tone         = 0.0;
+    double frequency    = 0.0;
+    double bandwidth    = 0.0;
     QString getName() { return name; }
+    QString toString();
 };
 
+/**
+ *
+ */
+class County{
+public:
+    County(QString name, int id);
+    QString name = "None";
+    int county_id = 0;
+    QVector<Channel> channels;
+    QVector<QString> getProtocols();
+    QVector<QString> getTags();
+    QVector<QString> getTalkgroups();
+    QVector<QString> getGroups();
+    QVector<Channel> getChannelsByProtocol(QString proto);
+    QVector<Channel> getChannelsByTag(QString tag);
+    QVector<Channel> getChannelsByTalkgroup(QString talkgroup);
+    QVector<Channel> getChannelsByGroup(QString talkgroup);
+    Channel* getChannelByAlphaTag(QString alphatag);
+    Channel* getChannelByFrequency(double freq);
+    Channel getChannelByString(QString str);
+};
+
+class State{
+public:
+    State(QString name);
+    int numCounties() { return this->counties.length(); }
+    QString name = "None";
+    QVector<County> counties;
+    QStringList getCountyNames();
+    County* getCountyByName(QString name);
+};
+
+static QStringList csv_headers = {"frequency", "description", "protocol", "tag", "alpha tag", "type"};
 
 /**
  * @brief The Radio class will run as a QThread
@@ -108,12 +154,23 @@ public:
     bool    isSearching   () { return this->radioStatus->isSearching; }
     void    setupRadio    ();
     QString radioProgramPath = "/home/adam/Documents/hello_world/rcv.py";
+    QString countiesFilePath = "/home/adam/Documents/sdr_gnu_radio_app/tools/us_counties.csv";
+    QString appDataDirPath = "/var/lib/sdrapp";
+    QString scrapeProgramPath = "";
     QStringList radioProgramArgs = {""};
     QString statusStr;
+    QVector<State> states;
+    bool hasState(QString name);
+    State* getStateByName(QString name);
+    void addCountyToState(QString state_name, County county);
+    QStringList getStateNames();
+    int getCountyId(QString name);
+    void updateChannelsFromFile(QString state, QString county);
 
 public slots:
     void    setBandwidth    (double bw);
     void    setCenterFreq   (double freq);
+    void    setListenFreq   (double freq);
     void    setVolume       (double volume);
     void    setFftPoints    (int points);
     void    setStartFreq    (double freq);
@@ -126,6 +183,7 @@ public slots:
     void    updateStatus    (const QJsonDocument& json);
     void    setProtocol     (const QString& str);
     void    addChannel      (const Channel& ch);
+    void    addChannelsToScanList(QVector<Channel> channels);
     void    saveChannels    ();
     void    nextChannel     ();
     void    prevChannel     ();
@@ -155,5 +213,7 @@ signals:
     void fftReady(const QVector<double>& fft);
     void statusUpdate(const RadioStatus& status);
 };
+
+QJsonArray channelsToJson(QVector<Channel>& channels);
 
 #endif // RADIO_H

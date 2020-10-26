@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QStringListModel>
+#include <QDir>
 #include "radio.h"
 #include "waterfall.h"
 #include "AMQPcpp.h"
@@ -30,6 +32,8 @@ public slots:
 
 private slots:
     void updateFreqDisplay(double freq);
+
+    void computeFrequency();
 
     void checkKeypadEntry();
 
@@ -87,6 +91,26 @@ private slots:
 
     void on_squelchSlider_sliderReleased();
 
+    void on_freqFineAdjustSlider_actionTriggered(int action);
+
+    void on_statesListView_activated(const QModelIndex &index);
+
+    void on_statesListView_clicked(const QModelIndex &index);
+
+    void on_countiesListView_clicked(const QModelIndex &index);
+
+    void on_updateChannelsButton_clicked();
+
+    void on_sortByComboBox_currentIndexChanged(const QString &arg1);
+
+    void on_categoryComboBox_currentIndexChanged(const QString &arg1);
+
+    void on_sortByComboBox_currentTextChanged(const QString &arg1);
+
+    void on_addToScanListBtn_clicked();
+
+    void on_beginScanBtn_clicked();
+
 private:
     Ui::MainWindow *ui;
     Radio* radio;
@@ -96,10 +120,13 @@ private:
     AMQP* amqp;
     AMQPExchange * log_ex;
     AMQPQueue * log_qu;
+    State* selected_state;
+    County* selected_county;
     void initWidgets();
 
 signals:
     void changeFrequency(double freq);
+    void changeListenFreq(double freq);
     void changeBandwidth(double bw);
     void changeVolume(double vol);
     void changeSquelch(double squelch);
@@ -107,6 +134,7 @@ signals:
     void changeScanStart(double freq);
     void changeScanStop(double freq);
     void changeScanStep(double freq);
+    void setChannelScanList(QVector<Channel> channels);
 
 };
 #endif // MAINWINDOW_H

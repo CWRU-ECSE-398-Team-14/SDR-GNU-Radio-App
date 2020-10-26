@@ -52,6 +52,7 @@ MainWindow::MainWindow(QWidget *parent)
     // ==== MainWindow signals to Radio slots ====
     // connect mainwindow signals to radio slots
     connect(this, &MainWindow::changeFrequency, radio, &Radio::setCenterFreq);
+    connect(this, &MainWindow::changeListenFreq, radio, &Radio::setListenFreq);
     connect(this, &MainWindow::changeBandwidth, radio, &Radio::setBandwidth);
     connect(this, &MainWindow::changeVolume, radio, &Radio::setVolume);
     connect(this, &MainWindow::changeSquelch, radio, &Radio::setSquelch);
@@ -59,6 +60,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::changeScanStart, radio, &Radio::setStartFreq);
     connect(this, &MainWindow::changeScanStop, radio, &Radio::setStopFreq);
     connect(this, &MainWindow::changeScanStep, radio, &Radio::setScanStep);
+    connect(this, &MainWindow::setChannelScanList, radio, &Radio::addChannelsToScanList);
 
     // ==== initialize widgets ====
     this->initWidgets();
@@ -85,6 +87,17 @@ void MainWindow::initWidgets(){
     ui->volumeSlider->setValue(ui->volumeSlider->maximum()/2);
     ui->squelchSlider->setValue(ui->squelchSlider->maximum()/2);
 
+    // populate states scroll area with state names
+    QAbstractItemModel *model = new QStringListModel(this->radio->getStateNames());
+    ui->statesListView->setModel(model);
+
+    // populate sort-by box (sort by csv header fields)
+    QStringList sortByFields;
+    sortByFields << "Protocol" << "Tag" << "Mode" << "Talkgroup" << "Group";
+    ui->sortByComboBox->insertItems(0, sortByFields);
+
+    // scan list ListView initial setup
+    ui->scanListListView->setModel(new QStringListModel());
 }
 
 /**
@@ -115,9 +128,12 @@ void MainWindow::handleStatusUpdate(const RadioStatus& status){
 
 void MainWindow::updateFreqDisplay(double freq){
     ui->activeFreqBtn->setText(QString("%1MHz").arg(freq/1.0e6, 0, 'f', 3));
-    ui->centerFreqLcdNumber->display(QString("%1").arg(freq/1.0e6, 0, 'f', 1));
     Channel chan = this->radio->findChannelByFreq(freq);
     ui->currentChannelBtn->setText(chan.getName());
+}
+
+void MainWindow::computeFrequency(){
+    //
 }
 
 /**
@@ -161,7 +177,7 @@ void MainWindow::checkKeypadEntry(){
                                            double(ui->frequencySlider->minimum()),
                                            double(ui->frequencySlider->maximum())) );
                 ui->frequencySlider->setValue(slider_value);
-                emit changeFrequency(d);
+                emit changeListenFreq(d);
             }else if(ui->scanStartBtn->isChecked()){
                 // modifying scan start frequency
                 d = d * 1.0e6; // from MHz to Hz
@@ -233,7 +249,8 @@ void MainWindow::on_frequencySlider_actionTriggered(int action)
                       this->radio->getMinFreq(),
                       this->radio->getMaxFreq());
     emit changeFrequency(freq); // signal to radio the change frequency
-    this->updateFreqDisplay(this->radio->getCenterFreq());
+    // this->updateFreqDisplay(this->radio->getCenterFreq());
+    ui->centerFreqLcdNumber->display(QString("%1").arg(freq/1.0e6, 0, 'f', 1));
 //    ui->activeFrequency->display(longs);
 }
 
@@ -438,4 +455,191 @@ void MainWindow::on_searchBtn_clicked()
 void MainWindow::on_squelchSlider_sliderReleased()
 {
     emit changeSquelch(map(ui->squelchSlider->value(), double(ui->squelchSlider->minimum()), double(ui->squelchSlider->maximum()), 0.0, 1.0));
+}
+
+void MainWindow::on_freqFineAdjustSlider_actionTriggered(int action)
+{
+    // adjust the frequency we're tuned to
+}
+
+void MainWindow::on_statesListView_activated(const QModelIndex &index)
+{
+
+}
+
+void MainWindow::on_statesListView_clicked(const QModelIndex &index)
+{
+    // display the counties for this state
+    QString str = index.data().toString();
+    this->selected_state = this->radio->getStateByName(str);
+    QAbstractItemModel *model = new QStringListModel(this->selected_state->getCountyNames());
+    ui->countiesListView->setModel(model);
+}
+
+void MainWindow::on_countiesListView_clicked(const QModelIndex &index)
+{
+    QString str = index.data().toString();
+    if(this->selected_county == nullptr || this->selected_county->name.compare(str) != 0){
+        // new county, do things
+        this->selected_county = this->selected_state->getCountyByName(str);
+
+        // clear the category ListView by setting it to an empty model
+        ui->channelsListView->setModel(new QStringListModel());
+
+        // clear the scan list ListView by setting it to an empty model
+        ui->scanListListView->setModel(new QStringListModel());
+
+        // now see if we have some csv data for this state and county
+        this->radio->updateChannelsFromFile(selected_state->name, selected_county->name);
+    }
+
+
+
+}
+
+void MainWindow::on_updateChannelsButton_clicked()
+{
+    if(selected_state != nullptr && selected_county != nullptr){
+        this->logMessage(QString("Updating channels for %2 County, %1").arg(selected_state->name).arg(selected_county->name));
+    }else{
+        return;
+    }
+    // call the web scraping program and process it's output
+    // 1. construct URL
+    // 2. call web scraping program and pass it the URL
+    // 3. read in the csv output
+    // 4. store in the appropriate directory
+    // 5. update from the new csv files
+    this->radio->updateChannelsFromFile(selected_state->name, selected_county->name);
+
+}
+
+void MainWindow::on_sortByComboBox_currentIndexChanged(const QString &arg1)
+{
+    // new grouping/sort-by thing
+    // populate category combo box with available categories
+    if(selected_county == nullptr){
+        return;
+    }
+    if(arg1.compare("tag", Qt::CaseInsensitive) == 0){
+        ui->categoryComboBox->clear();
+        QStringList tags;
+        for(auto str : selected_county->getTags()){
+            tags << str;
+        }
+        ui->categoryComboBox->addItems(tags);
+    }else if(arg1.compare("protocol", Qt::CaseInsensitive) == 0){
+        ui->categoryComboBox->clear();
+        QStringList protocols;
+        for(auto str : selected_county->getProtocols()){
+            protocols << str;
+        }
+        ui->categoryComboBox->addItems(protocols);
+    }else if(arg1.compare("talkgroup", Qt::CaseInsensitive) == 0){
+        ui->categoryComboBox->clear();
+        QStringList talkgroups;
+        for(auto str : selected_county->getTalkgroups()){
+            talkgroups << str;
+        }
+        ui->categoryComboBox->addItems(talkgroups);
+    }else if(arg1.compare("group", Qt::CaseInsensitive) == 0){
+        ui->categoryComboBox->clear();
+        QStringList groups;
+        for(auto str : selected_county->getGroups()){
+            groups << str;
+        }
+        ui->categoryComboBox->addItems(groups);
+    }
+}
+
+void MainWindow::on_categoryComboBox_currentIndexChanged(const QString &arg1)
+{
+    // display channels fitting all the criteria
+    QString sortBy = ui->sortByComboBox->currentText();
+    logMessage("Sort by " + sortBy);
+    QStringList channelStrings;
+
+    if(selected_county == nullptr){
+        return;
+    }
+    if(sortBy.compare("tag", Qt::CaseInsensitive) == 0){
+        // show channels with tag matching arg1
+        for(auto ch : selected_county->getChannelsByTag(arg1)){
+            channelStrings << ch.toString();
+        }
+    }else if(sortBy.compare("protocol", Qt::CaseInsensitive) == 0){
+        // show channels with protocol matching arg1
+        for(auto ch : selected_county->getChannelsByProtocol(arg1)){
+            channelStrings << ch.toString();
+        }
+    }else if(sortBy.compare("talkgroup", Qt::CaseInsensitive) == 0){
+        // show channels with talkgrouup matching arg1
+        for(auto ch : selected_county->getChannelsByTalkgroup(arg1)){
+            channelStrings << ch.toString();
+        }
+    }else if(sortBy.compare("group", Qt::CaseInsensitive) == 0){
+        // show channels with group matching arg1
+        for(auto ch : selected_county->getChannelsByGroup(arg1)){
+            channelStrings << ch.toString();
+        }
+    }
+
+    QAbstractItemModel *model = new QStringListModel(channelStrings);
+    ui->channelsListView->setModel(model);
+}
+
+void MainWindow::on_sortByComboBox_currentTextChanged(const QString &arg1)
+{
+
+}
+
+void MainWindow::on_addToScanListBtn_clicked()
+{
+    // ==== append the filtered list in channelsListView to the scanListListView ====
+    QAbstractItemModel* model = ui->channelsListView->model();
+
+    QAbstractItemModel* destModel = ui->scanListListView->model();
+    if(destModel == nullptr){
+        ui->scanListListView->setModel(new QStringListModel());
+        destModel = ui->scanListListView->model();
+    }
+
+    // get list of proposed additions to scan list
+    QVector<QString> listToAdd;
+    for(int row = 0; row < model->rowCount(); row++){
+        listToAdd.append(model->data(model->index(row, 0)).toString());
+    }
+
+    // get list of existing items in scan list
+    QVector<QString> existingScanList;
+    for(int row = 0; row < destModel->rowCount(); row++){
+        existingScanList.append(destModel->data(destModel->index(row, 0)).toString());
+    }
+
+    // go through listToAdd, if item doesn't occur in existingScanList, add to scanList
+    for(auto str : listToAdd){
+        if(!existingScanList.contains(str)){
+            QVariant var(str);
+            int insertAt = destModel->rowCount();
+            destModel->insertRow(insertAt);
+            destModel->setData(destModel->index(insertAt, 0), var);
+        }
+    }
+
+}
+
+void MainWindow::on_beginScanBtn_clicked()
+{
+    // send the list of channels listed in scanListListView to the backend
+    QAbstractItemModel* model = ui->scanListListView->model();
+    if(model == nullptr || selected_county == nullptr){
+        return;
+    }
+    QVector<Channel> channels;
+    for(int row = 0; row < model->rowCount(); row++){
+        Channel ch = selected_county->getChannelByString(model->data(model->index(row, 0)).toString());
+        channels.push_back(ch);
+    }
+    emit setChannelScanList(channels); // set the scan list
+    emit changeSearch(true); // trigger the start of scanning
 }
