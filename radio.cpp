@@ -483,11 +483,11 @@ void Radio::setupRadio(){
 
     // start the GNU radio process
     // std output ready signal -> readRadioProcessStdout
-    connect(this->radioProcess, &QProcess::readyReadStandardOutput, this, &Radio::readRadioProcessStdout);
-    this->radioProcess->start(this->radioProgramPath, QStringList() << this->radioProgramArgs);
-    this->radioProcess->waitForStarted(5000); // allow 5 seconds to start
+//    connect(this->radioProcess, &QProcess::readyReadStandardOutput, this, &Radio::readRadioProcessStdout);
+//    this->radioProcess->start(this->radioProgramPath, QStringList() << this->radioProgramArgs);
+//    this->radioProcess->waitForStarted(5000); // allow 5 seconds to start
 
-    emit debugMessage(QString("Started GNU radio process"));
+//    emit debugMessage(QString("Started GNU radio process"));
 
     // create the AMQP objects
     try{
