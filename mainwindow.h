@@ -112,6 +112,7 @@ private slots:
     void on_beginScanBtn_clicked();
 
 private:
+    bool widgetsReady = false;
     Ui::MainWindow *ui;
     Radio* radio;
     Waterfall* waterfall;
@@ -120,8 +121,8 @@ private:
     AMQP* amqp;
     AMQPExchange * log_ex;
     AMQPQueue * log_qu;
-    State* selected_state;
-    County* selected_county;
+    State* selected_state = nullptr;
+    County* selected_county = nullptr;
     void initWidgets();
 
 signals:
