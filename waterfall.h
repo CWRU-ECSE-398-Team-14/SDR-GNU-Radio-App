@@ -21,6 +21,13 @@
 #define PIXEL_VALUE_MAX     16777216
 #define PIXEL_VALUE_HALF    PIXEL_VALUE_MAX/2
 
+typedef struct {
+    uchar red;
+    uchar green;
+    uchar blue;
+    uchar alpha;
+}Pixel;
+
 class Waterfall : public QObject
 {
     Q_OBJECT
@@ -45,10 +52,13 @@ private:
     int bmpFileSize;
     int pixelBytes;
     double fftMin = -100.0;
-    double fftMax = 50.0;
+    double fftMax = 10.0;
     double fftHalf;
+    double resolution = 100.0; // steps per dB
     uint8_t bpp = 32;
     uchar* bmp;
+    double lutSize;
+    Pixel* lut;
 };
 
 double constrain(double x, double min, double max);

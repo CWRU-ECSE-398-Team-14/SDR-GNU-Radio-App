@@ -14,6 +14,37 @@ Waterfall::Waterfall(QObject *parent, int width, int maxHeight) :
     this->bmp = (uchar*)malloc(this->bmpFileSize); // allocate memory for our BMP "file"
 
     this->makeBmpHeader();
+
+    // create our power-to-pixel value look-up-table
+    lutSize = (fftMax - fftMin)*resolution + 1;
+    this->lut = (Pixel*)malloc(lutSize * sizeof(Pixel));
+    double pwr = fftMin; // pwr in dBm
+    double half = pow(10.0, fftHalf/10.0);
+    for(int i = 0; i < lutSize; i++){
+        double value = pow(10.0, pwr/10.0);
+
+        // start with blue
+        double blue = half - value;
+        if(blue < 0.0){
+            blue = 0.0;
+        }
+
+        // now green
+        double green = half - fabs(half - value);
+
+        // lastly red
+        double red = value - half;
+        if(red < 0.0){
+            red = 0.0;
+        }
+
+        lut[i].blue = uchar(map(blue, 0.0, half, 0.0, 255.0) + 0.5);
+        lut[i].green = uchar(map(green, 0.0, half, 0.0, 255.0) + 0.5);
+        lut[i].red = uchar(map(red, 0.0, half, 0.0, 255.0) + 0.5);
+        lut[i].alpha = 0;
+
+        pwr += 1.0/resolution;
+    }
 }
 
 
@@ -103,28 +134,19 @@ void Waterfall::addNewRow(double* values){
  * @param pixData the memory location of the pixel
  */
 void Waterfall::doubleToPixel(double value, uchar* pixData){
-    value = constrain(value, this->fftMin, this->fftMax);
 
-    // start with blue
-    double blue = this->fftHalf - value;
-    if(blue < this->fftMin){
-        blue = 0.0;
+    int ind = int(0.5 + (value - fftMin)*resolution);
+
+    if(ind > lutSize - 1){
+        ind = lutSize - 1;
+    }else if(ind < 0){
+        ind = 0;
     }
-
-    // now green
-    double green = this->fftHalf - fabs(this->fftHalf - value);
-
-    // lastly red
-    double red = value - this->fftHalf;
-    if(red < this->fftMin){
-        red = 0.0;
-    }
-
     // blue red green alpha
-    pixData[0] = uchar(map(blue, fftMin, fftHalf, 0.0, 255.0) + 0.5);
-    pixData[1] = uchar(map(red, fftMin, fftHalf, 0.0, 255.0) + 0.5);
-    pixData[2] = uchar(map(green, fftMin, fftHalf, 0.0, 255.0) + 0.5);
-    pixData[3] = 0;
+    pixData[0] = lut[ind].blue;
+    pixData[1] = lut[ind].red;
+    pixData[2] = lut[ind].green;
+    pixData[3] = lut[ind].alpha;
 
 }
 
