@@ -91,10 +91,16 @@ void MainWindow::initWidgets(){
     QAbstractItemModel *model = new QStringListModel(this->radio->getStateNames());
     ui->statesListView->setModel(model);
 
+    // empty model for county ListView
+    ui->countiesListView->setModel(new QStringListModel());
+
     // populate sort-by box (sort by csv header fields)
     QStringList sortByFields;
     sortByFields << "Protocol" << "Tag" << "Mode" << "Talkgroup" << "Group";
     ui->sortByComboBox->insertItems(0, sortByFields);
+
+    // channels ListView initial setup
+    ui->channelsListView->setModel(new QStringListModel());
 
     // scan list ListView initial setup
     ui->scanListListView->setModel(new QStringListModel());
@@ -124,12 +130,25 @@ void MainWindow::handleWaterfall(const QPixmap& pixmap){
 void MainWindow::handleStatusUpdate(const RadioStatus& status){
 //    this->radioStatus = new RadioStatus(status);
     this->logMessage("SDR dongle status: " + status.statusStr);
+
+    // set button texts in the first tab
+    ui->currentChannelBtn->setText(status.channelName);
+    this->updateFreqDisplay(status.frequency);
+
+    QString channelInfo = QString("%1\r\n%2MHz\r\n%3dBm")
+            .arg(status.channelName)
+            .arg(status.frequency/1e6, 0, 'g', 4)
+            .arg(status.signalPower, 0, 'g', 2);
+
+    ui->currentChannelInfoLbl->setText(channelInfo);
 }
 
+/**
+ * @brief MainWindow::updateFreqDisplay display formatted freq on the main tab
+ * @param freq frequency to display in Hz
+ */
 void MainWindow::updateFreqDisplay(double freq){
     ui->activeFreqBtn->setText(QString("%1MHz").arg(freq/1.0e6, 0, 'f', 3));
-    Channel chan = this->radio->findChannelByFreq(freq);
-    ui->currentChannelBtn->setText(chan.getName());
 }
 
 void MainWindow::computeFrequency(){
@@ -642,4 +661,47 @@ void MainWindow::on_beginScanBtn_clicked()
     }
     emit setChannelScanList(channels); // set the scan list
     emit changeSearch(true); // trigger the start of scanning
+}
+
+void MainWindow::on_stopScanButton_clicked()
+{
+    emit changeSearch(false); // signal the stop of scanning
+    ui->currentChannelInfoLbl->setText("----");
+}
+
+void MainWindow::on_findWifiBtn_clicked()
+{
+    // use lswifi then populate combobox with SSID's
+    QProcessEnvironment sys = QProcessEnvironment::systemEnvironment();
+
+    if(sys.contains("LSWIFI_PATH")){
+        // check for file existance
+        QString path = sys.value("LSWIFI_PATH");
+        if(QFile::exists(path) && QFile::permissions(path) & (QFileDevice::ExeGroup | QFileDevice::ExeUser | QFileDevice::ExeOther)){
+            // exists and we can run it
+            this->logMessage("running lswifi.py...");
+            QProcess* lswifiProc = new QProcess(this);
+            lswifiProc->start(QString(".%1").arg(path), QStringList());
+            QString list = QString(lswifiProc->readAllStandardOutput());
+            std::stringstream iss(list.toStdString());
+            QVector<QVector<QString>> ssids = read_csv(iss);
+            for(auto ssid : ssids[0]){
+                this->logMessage(ssid);
+                ui->wifiNetworksComboBox->addItem(ssid);
+            }
+        }else{
+            this->logMessage("lswifi.py not found.");
+        }
+    }else{
+        this->logMessage("lswifi.py location unknown.");
+    }
+}
+
+void MainWindow::on_connectToWifiBtn_clicked()
+{
+    // get current SSID from combobox
+
+    // get password from passwdLineEdit
+
+    // do things to connect to the wifi network
 }

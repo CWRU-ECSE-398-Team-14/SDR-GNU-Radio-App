@@ -41,7 +41,7 @@
      <enum>QTabWidget::North</enum>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>4</number>
     </property>
     <widget class="QWidget" name="listenTab">
      <attribute name="title">
@@ -1141,9 +1141,9 @@ Scan List</string>
       <property name="geometry">
        <rect>
         <x>260</x>
-        <y>216</y>
+        <y>170</y>
         <width>191</width>
-        <height>51</height>
+        <height>41</height>
        </rect>
       </property>
       <property name="text">
@@ -1153,10 +1153,10 @@ Scan List</string>
      <widget class="QLabel" name="currentChannelInfoLbl">
       <property name="geometry">
        <rect>
-        <x>266</x>
-        <y>19</y>
+        <x>260</x>
+        <y>20</y>
         <width>181</width>
-        <height>181</height>
+        <height>141</height>
        </rect>
       </property>
       <property name="text">
@@ -1164,6 +1164,19 @@ Scan List</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="stopScanButton">
+      <property name="geometry">
+       <rect>
+        <x>260</x>
+        <y>220</y>
+        <width>191</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Stop Scan</string>
       </property>
      </widget>
     </widget>
@@ -1175,9 +1188,9 @@ Scan List</string>
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>120</y>
+        <y>100</y>
         <width>461</width>
-        <height>161</height>
+        <height>181</height>
        </rect>
       </property>
       <property name="font">
@@ -1188,6 +1201,78 @@ Scan List</string>
       </property>
       <property name="backgroundVisible">
        <bool>false</bool>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="findWifiBtn">
+      <property name="geometry">
+       <rect>
+        <x>260</x>
+        <y>10</y>
+        <width>191</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Find WiFi Networks</string>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="wifiNetworksComboBox">
+      <property name="geometry">
+       <rect>
+        <x>70</x>
+        <y>10</y>
+        <width>181</width>
+        <height>27</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="connectToWifiBtn">
+      <property name="geometry">
+       <rect>
+        <x>260</x>
+        <y>50</y>
+        <width>191</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Connect</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="passwdLineEdit">
+      <property name="geometry">
+       <rect>
+        <x>70</x>
+        <y>50</y>
+        <width>181</width>
+        <height>27</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="passwdLbl">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>50</y>
+        <width>61</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Passwd</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="ssidLbl">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>61</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>SSID's</string>
       </property>
      </widget>
     </widget>

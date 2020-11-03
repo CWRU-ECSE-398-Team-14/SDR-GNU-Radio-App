@@ -111,6 +111,12 @@ private slots:
 
     void on_beginScanBtn_clicked();
 
+    void on_stopScanButton_clicked();
+
+    void on_findWifiBtn_clicked();
+
+    void on_connectToWifiBtn_clicked();
+
 private:
     bool widgetsReady = false;
     Ui::MainWindow *ui;

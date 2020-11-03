@@ -120,6 +120,7 @@ SHARED_DATA_DIR=/var/lib/sdrapp
 if [[ ! -d $SHARED_DATA_DIR ]]; then
   sudo mkdir $SHARED_DATA_DIR
 fi
+sudo chown $USER $SHARED_DATA_DIR
 sudo chgrp $USER $SHARED_DATA_DIR
 sudo chmod 775 $SHARED_DATA_DIR
 
