@@ -61,6 +61,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::changeScanStop, radio, &Radio::setStopFreq);
     connect(this, &MainWindow::changeScanStep, radio, &Radio::setScanStep);
     connect(this, &MainWindow::setChannelScanList, radio, &Radio::addChannelsToScanList);
+    connect(this, &MainWindow::changeProtocol, radio, &Radio::setProtocol);
 
     // ==== initialize widgets ====
     this->initWidgets();
@@ -104,6 +105,46 @@ void MainWindow::initWidgets(){
 
     // scan list ListView initial setup
     ui->scanListListView->setModel(new QStringListModel());
+
+    // set p25 button to checked
+    ui->p25Btn->click(); // check button and emit changeProtocol signal
+
+    // ==== waterfall display setup ====
+    //      freq fine adjust slider
+    ui->freqFineAdjustSlider->setValue((ui->freqFineAdjustSlider->maximum() + ui->freqFineAdjustSlider->minimum())/2);
+
+    //      limit labels on waterfall display
+    double center   = this->getCenterFreqSetpoint(); // wherever it happens to be
+    double bw       = this->getBandwidthSetpoint();
+    ui->waterfallFreqLabelLeft->setText(QString("%1MHz").arg((center - bw/2)/1.0e6, 0, 'f', 4));
+    ui->waterfallFreqLabelRight->setText(QString("%1MHz").arg((center + bw/2)/1.0e6, 0, 'f', 4));
+
+}
+
+/**
+ * @brief MainWindow::getBandwidthSetpoint find bandwidth setpoint according to the bandwidth slider
+ * @return bandwidth in Hz according to bandwidthSlider position
+ */
+double MainWindow::getBandwidthSetpoint(){
+    double slider_value = ui->bandwidthSlider->value();
+    return map(slider_value, double(ui->bandwidthSlider->minimum()), double(ui->bandwidthSlider->maximum()), 1.0e3, 3000.0e3);
+}
+
+double MainWindow::getCenterFreqSetpoint(){
+    double slider_value = ui->frequencySlider->value();
+    return map(slider_value,
+                      double(ui->frequencySlider->minimum()),
+                      double(ui->frequencySlider->maximum()),
+                      this->radio->getMinFreq(),
+                      this->radio->getMaxFreq());
+}
+
+double MainWindow::getFreqFineAdjustOffset(){
+    double slider_value = ui->freqFineAdjustSlider->value();
+    double bw = this->getBandwidthSetpoint();
+    double offset = map(slider_value, ui->freqFineAdjustSlider->minimum(), ui->freqFineAdjustSlider->maximum(), -bw/2.0, bw/2.0);
+    this->logMessage(QString("Offset: %1MHz").arg(offset/1.0e6, 0, 'f', 4));
+    return offset;
 }
 
 /**
@@ -129,18 +170,26 @@ void MainWindow::handleWaterfall(const QPixmap& pixmap){
  */
 void MainWindow::handleStatusUpdate(const RadioStatus& status){
 //    this->radioStatus = new RadioStatus(status);
-    this->logMessage("SDR dongle status: " + status.statusStr);
+    this->logMessage("SDR dongle status: " + status.statusStr); // debug output
 
+    // ==== Scan/Search tab ====
     // set button texts in the first tab
     ui->currentChannelBtn->setText(status.channelName);
     this->updateFreqDisplay(status.frequency);
 
+    // ==== scan list tab ====
+    // construct text block
     QString channelInfo = QString("%1\r\n%2MHz\r\n%3dBm")
             .arg(status.channelName)
             .arg(status.frequency/1e6, 0, 'g', 4)
             .arg(status.signalPower, 0, 'g', 2);
 
-    ui->currentChannelInfoLbl->setText(channelInfo);
+    ui->currentChannelInfoLbl->setText(channelInfo); // display in Scan List tab
+
+    // ==== waterfall tab ====
+    ui->centerFreqLcdNumber->display(QString("%1").arg(status.frequency/1e6, 0, 'f', 1));
+
+
 }
 
 /**
@@ -190,12 +239,7 @@ void MainWindow::checkKeypadEntry(){
 
                 this->updateFreqDisplay(d);
 
-                int slider_value = int(map(d,
-                                           this->radio->getMinFreq(),
-                                           this->radio->getMaxFreq(),
-                                           double(ui->frequencySlider->minimum()),
-                                           double(ui->frequencySlider->maximum())) );
-                ui->frequencySlider->setValue(slider_value);
+                setCenterFreqSetpoint(d);
                 emit changeListenFreq(d);
             }else if(ui->scanStartBtn->isChecked()){
                 // modifying scan start frequency
@@ -259,28 +303,63 @@ void MainWindow::logEvent(const QString &msg){
     this->log_ex->Publish(arr.data(), arr.size(), "");
 }
 
+/**
+ * @brief MainWindow::setCenterFreqSetpoint programmatically set the center freq. slider to given freq.
+ * @param freq frequency to set the slider to
+ */
+void MainWindow::setCenterFreqSetpoint(double freq){
+    int slider_value = int(map(freq,
+                               this->radio->getMinFreq(),
+                               this->radio->getMaxFreq(),
+                               double(ui->frequencySlider->minimum()),
+                               double(ui->frequencySlider->maximum())) );
+    ui->frequencySlider->setValue(slider_value);
+
+    double bw = this->getBandwidthSetpoint();
+    ui->waterfallFreqLabelLeft->setText(QString("%1MHz").arg((freq - bw/2)/1.0e6, 0, 'f', 4));
+    ui->waterfallFreqLabelRight->setText(QString("%1MHz").arg((freq + bw/2)/1.0e6, 0, 'f', 4));
+}
+
+/**
+ * @brief MainWindow::setBandwidthSetpoint programmatically set bandwidth slider to given bandwidth
+ * @param bw bandwidth to set the slider to
+ */
+void MainWindow::setBandwidthSetpoint(double bw){
+    int slider_value = int(map(bw, 1.0e3, 3000.0e3,
+                               double(ui->bandwidthSlider->minimum()),
+                               double(ui->bandwidthSlider->maximum())) );
+    ui->bandwidthSlider->setValue(slider_value);
+
+    double freq = this->getCenterFreqSetpoint();
+    ui->waterfallFreqLabelLeft->setText(QString("%1MHz").arg((freq - bw/2)/1.0e6, 0, 'f', 4));
+    ui->waterfallFreqLabelRight->setText(QString("%1MHz").arg((freq + bw/2)/1.0e6, 0, 'f', 4));
+}
+
 void MainWindow::on_frequencySlider_actionTriggered(int action)
 {
-    double slider_value = ui->frequencySlider->value();
-    double freq = map(slider_value,
-                      double(ui->frequencySlider->minimum()),
-                      double(ui->frequencySlider->maximum()),
-                      this->radio->getMinFreq(),
-                      this->radio->getMaxFreq());
+    double freq = this->getCenterFreqSetpoint();
     emit changeFrequency(freq); // signal to radio the change frequency
     // this->updateFreqDisplay(this->radio->getCenterFreq());
     ui->centerFreqLcdNumber->display(QString("%1").arg(freq/1.0e6, 0, 'f', 1));
 //    ui->activeFrequency->display(longs);
+
+    double bw = this->getBandwidthSetpoint();
+    ui->waterfallFreqLabelLeft->setText(QString("%1MHz").arg((freq - bw/2)/1.0e6, 0, 'f', 4));
+    ui->waterfallFreqLabelRight->setText(QString("%1MHz").arg((freq + bw/2)/1.0e6, 0, 'f', 4));
+
 }
 
 void MainWindow::on_bandwidthSlider_actionTriggered(int action)
 {
-    double slider_value = ui->bandwidthSlider->value();
-    double bw = map(slider_value, double(ui->bandwidthSlider->minimum()), double(ui->bandwidthSlider->maximum()), 1.0e3, 3000.0e3);
+    double bw = getBandwidthSetpoint();
     //this->radio->setBandwidth(bw);
     emit changeBandwidth(bw);
     const QString s = QString("%1").arg(this->radio->getBandwidth()/1.0e3, 0, 'f', 1);
     ui->bandwidthLcdNumber->display(s);
+
+    double freq = this->getCenterFreqSetpoint();
+    ui->waterfallFreqLabelLeft->setText(QString("%1MHz").arg((freq - bw/2)/1.0e6, 0, 'f', 4));
+    ui->waterfallFreqLabelRight->setText(QString("%1MHz").arg((freq + bw/2)/1.0e6, 0, 'f', 4));
 }
 
 void MainWindow::on_frequencySlider_sliderPressed()
@@ -478,7 +557,11 @@ void MainWindow::on_squelchSlider_sliderReleased()
 
 void MainWindow::on_freqFineAdjustSlider_actionTriggered(int action)
 {
-    // adjust the frequency we're tuned to
+    // change LCD display
+    double f = this->radio->getCenterFreq() + this->getFreqFineAdjustOffset();
+    ui->centerFreqLcdNumber->display(QString("%1").arg(f/1.0e6, 0, 'f', 1));
+
+    // TODO: adjust the frequency we're tuned to
 }
 
 void MainWindow::on_statesListView_activated(const QModelIndex &index)
@@ -704,4 +787,22 @@ void MainWindow::on_connectToWifiBtn_clicked()
     // get password from passwdLineEdit
 
     // do things to connect to the wifi network
+}
+
+void MainWindow::on_p25Btn_clicked()
+{
+    // de-check the FM button
+    ui->fmBtn->setChecked(false);
+
+    // emit change protocol signal
+    emit changeProtocol("P25");
+}
+
+void MainWindow::on_fmBtn_clicked()
+{
+    // de-check the FM button
+    ui->p25Btn->setChecked(false);
+
+    // emit change protocol signal
+    emit changeProtocol("FM");
 }

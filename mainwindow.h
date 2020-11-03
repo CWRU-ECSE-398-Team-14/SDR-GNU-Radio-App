@@ -30,6 +30,10 @@ public slots:
 
     void logEvent(const QString &);
 
+    void setCenterFreqSetpoint(double freq);
+
+    void setBandwidthSetpoint(double bw);
+
 private slots:
     void updateFreqDisplay(double freq);
 
@@ -117,19 +121,26 @@ private slots:
 
     void on_connectToWifiBtn_clicked();
 
+    void on_p25Btn_clicked();
+
+    void on_fmBtn_clicked();
+
 private:
     bool widgetsReady = false;
     Ui::MainWindow *ui;
-    Radio* radio;
-    Waterfall* waterfall;
+    Radio* radio = nullptr;
+    Waterfall* waterfall = nullptr;
     QStringList keypadEntry;
-    RadioStatus* radioStatus;
-    AMQP* amqp;
-    AMQPExchange * log_ex;
-    AMQPQueue * log_qu;
+    RadioStatus* radioStatus = nullptr;
+    AMQP* amqp = nullptr;
+    AMQPExchange * log_ex = nullptr;
+    AMQPQueue * log_qu = nullptr;
     State* selected_state = nullptr;
     County* selected_county = nullptr;
     void initWidgets();
+    double getBandwidthSetpoint();
+    double getCenterFreqSetpoint();
+    double getFreqFineAdjustOffset();
 
 signals:
     void changeFrequency(double freq);
@@ -141,6 +152,7 @@ signals:
     void changeScanStart(double freq);
     void changeScanStop(double freq);
     void changeScanStep(double freq);
+    void changeProtocol(QString str);
     void setChannelScanList(QVector<Channel> channels);
 
 };
