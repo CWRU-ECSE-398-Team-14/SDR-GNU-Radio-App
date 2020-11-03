@@ -35,10 +35,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(radio, &Radio::finished, radio, &QObject::deleteLater);
 
-    radio->setupRadio(); // basic setup
-    radio->start(); // start radio thread
-
-
     // ==== waterfall object ====
     // create a waterfall object
     waterfall = new Waterfall(this, ui->waterfallLabel->width(), ui->waterfallLabel->height());
@@ -48,6 +44,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     // connect radio's fftReady signal to waterfall's appendFFT slot
     connect(radio, &Radio::fftReady, waterfall, &Waterfall::appendFFT);
+
+    radio->setupRadio(); // basic setup
+    radio->start(); // start radio thread
 
     // ==== MainWindow signals to Radio slots ====
     // connect mainwindow signals to radio slots
@@ -143,7 +142,6 @@ double MainWindow::getFreqFineAdjustOffset(){
     double slider_value = ui->freqFineAdjustSlider->value();
     double bw = this->getBandwidthSetpoint();
     double offset = map(slider_value, ui->freqFineAdjustSlider->minimum(), ui->freqFineAdjustSlider->maximum(), -bw/2.0, bw/2.0);
-    this->logMessage(QString("Offset: %1MHz").arg(offset/1.0e6, 0, 'f', 4));
     return offset;
 }
 

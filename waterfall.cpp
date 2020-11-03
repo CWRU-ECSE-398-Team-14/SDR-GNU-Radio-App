@@ -5,7 +5,7 @@ Waterfall::Waterfall(QObject *parent, int width, int maxHeight) :
 {
     this->width = width;
     this->maxHeight = maxHeight;
-    this->fftHalf = this->fftMax/2.0;
+    this->fftHalf = (this->fftMin + this->fftMax)/2.0;
 
     int bytes_per_row = ((this->bpp*this->width + 31)/32)*4;
     this->pixelBytes = bytes_per_row*this->maxHeight;
@@ -27,11 +27,13 @@ Waterfall::~Waterfall(){
  * will emit the pixmapReady signal when bitmap is formed
  */
 void Waterfall::appendFFT(const QVector<double>& fft){
+
     // shift all existing pixels down
     this->shiftRowsDown(1);
 
     if(fft.size() != this->width){
         double* temp = (double*)malloc(this->width*sizeof(double));
+        memset(temp, 0, this->width*sizeof(double));
         scale(temp, this->width, (double*)fft.data(), fft.size());
         this->addNewRow(temp);
         free(temp);
@@ -101,11 +103,11 @@ void Waterfall::addNewRow(double* values){
  * @param pixData the memory location of the pixel
  */
 void Waterfall::doubleToPixel(double value, uchar* pixData){
-    value = constrain(value, 0.0, this->fftMax);
+    value = constrain(value, this->fftMin, this->fftMax);
 
     // start with blue
     double blue = this->fftHalf - value;
-    if(blue < 0.0){
+    if(blue < this->fftMin){
         blue = 0.0;
     }
 
@@ -114,14 +116,14 @@ void Waterfall::doubleToPixel(double value, uchar* pixData){
 
     // lastly red
     double red = value - this->fftHalf;
-    if(red < 0.0){
+    if(red < this->fftMin){
         red = 0.0;
     }
 
     // blue red green alpha
-    pixData[0] = uchar(map(blue, 0.0, fftHalf, 0.0, 255.0) + 0.5);
-    pixData[1] = uchar(map(red, 0.0, fftHalf, 0.0, 255.0) + 0.5);
-    pixData[2] = uchar(map(green, 0.0, fftHalf, 0.0, 255.0) + 0.5);
+    pixData[0] = uchar(map(blue, fftMin, fftHalf, 0.0, 255.0) + 0.5);
+    pixData[1] = uchar(map(red, fftMin, fftHalf, 0.0, 255.0) + 0.5);
+    pixData[2] = uchar(map(green, fftMin, fftHalf, 0.0, 255.0) + 0.5);
     pixData[3] = 0;
 
 }
@@ -146,7 +148,6 @@ void scale(double* dest, int dest_size, double* src, int src_size){
 
     double weight = double(src_size)/double(temp_size);
 
-    // populate temp
     for(int i = 0; i < temp_size; i++){
         temp[i] = weight * src[ int(i*weight) ];
     }
@@ -154,9 +155,8 @@ void scale(double* dest, int dest_size, double* src, int src_size){
     weight = double(dest_size)/double(src_size); // scaling from src to dest
     double factor = double(temp_size)/double(dest_size); // to get the right dest index
 
-    // populate dest
     for(int i = 0; i < temp_size; i++){
-        dest[int(i*factor)] += weight*temp[i];
+        dest[int(i/factor)] += weight*temp[i];
     }
 
     free(temp);

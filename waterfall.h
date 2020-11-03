@@ -25,7 +25,7 @@ class Waterfall : public QObject
 {
     Q_OBJECT
 public:
-    explicit Waterfall(QObject *parent = nullptr, int width = 350, int maxHeight = 200);
+    Waterfall(QObject *parent = nullptr, int width = 350, int maxHeight = 200);
     ~Waterfall();
     void setFFTMax(double max) { fftMax = max; fftHalf = fftMax/2.0; }
 
@@ -44,7 +44,8 @@ private:
     int maxHeight;
     int bmpFileSize;
     int pixelBytes;
-    double fftMax = 1000.0;
+    double fftMin = -100.0;
+    double fftMax = 50.0;
     double fftHalf;
     uint8_t bpp = 32;
     uchar* bmp;
