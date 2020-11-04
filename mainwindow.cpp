@@ -138,6 +138,10 @@ double MainWindow::getCenterFreqSetpoint(){
                       this->radio->getMaxFreq());
 }
 
+/**
+ * @brief MainWindow::getFreqFineAdjustOffset return center freq. offset due to the fine adjust slider position
+ * @return frequency offset in Hz
+ */
 double MainWindow::getFreqFineAdjustOffset(){
     double slider_value = ui->freqFineAdjustSlider->value();
     double bw = this->getBandwidthSetpoint();

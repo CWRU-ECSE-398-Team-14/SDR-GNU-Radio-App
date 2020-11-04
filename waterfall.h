@@ -61,6 +61,7 @@ private:
     Pixel* lut;
 };
 
+int nconstrain(int n, int min, int max);
 double constrain(double x, double min, double max);
 int nmap(int x, int in_min, int in_max, int out_min, int out_max);
 double map(double x, double in_min, double in_max, double out_min, double out_max);

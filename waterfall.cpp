@@ -1,5 +1,11 @@
 #include "waterfall.h"
 
+/**
+ * @brief Waterfall::Waterfall constructor
+ * @param parent used for QObject
+ * @param width width in pixels of the waterfall
+ * @param maxHeight height in pixels of the waterfall
+ */
 Waterfall::Waterfall(QObject *parent, int width, int maxHeight) :
     QObject(parent)
 {
@@ -15,7 +21,7 @@ Waterfall::Waterfall(QObject *parent, int width, int maxHeight) :
 
     this->makeBmpHeader();
 
-    // create our power-to-pixel value look-up-table
+    // create our power-to-pixel-value look-up-table
     lutSize = (fftMax - fftMin)*resolution + 1;
     this->lut = (Pixel*)malloc(lutSize * sizeof(Pixel));
     double pwr = fftMin; // pwr in dBm
@@ -50,6 +56,7 @@ Waterfall::Waterfall(QObject *parent, int width, int maxHeight) :
 
 Waterfall::~Waterfall(){
     free(this->bmp);
+    free(this->lut);
 }
 
 /**
@@ -135,13 +142,8 @@ void Waterfall::addNewRow(double* values){
  */
 void Waterfall::doubleToPixel(double value, uchar* pixData){
 
-    int ind = int(0.5 + (value - fftMin)*resolution);
+    int ind = nconstrain(int(0.5 + (value - fftMin)*resolution), 0, lutSize - 1);
 
-    if(ind > lutSize - 1){
-        ind = lutSize - 1;
-    }else if(ind < 0){
-        ind = 0;
-    }
     // blue red green alpha
     pixData[0] = lut[ind].blue;
     pixData[1] = lut[ind].red;
@@ -150,6 +152,9 @@ void Waterfall::doubleToPixel(double value, uchar* pixData){
 
 }
 
+int nconstrain(int n, int min, int max){
+    return (n < min ? min : (n > max ? max : n));
+}
 
 double constrain(double x, double min, double max){
     return (x < min ? min : (x > max ? max : x));
@@ -166,22 +171,15 @@ double map(double x, double in_min, double in_max, double out_min, double out_ma
 
 void scale(double* dest, int dest_size, double* src, int src_size){
     int temp_size = dest_size*src_size;
-    double* temp = (double*)malloc(temp_size*sizeof(double));
 
-    double weight = double(src_size)/double(temp_size);
-
-    for(int i = 0; i < temp_size; i++){
-        temp[i] = weight * src[ int(i*weight) ];
-    }
-
-    weight = double(dest_size)/double(src_size); // scaling from src to dest
+    double weight_1 = double(src_size)/double(temp_size);
+    double weight_2 = double(dest_size)/double(src_size); // scaling from src to dest
     double factor = double(temp_size)/double(dest_size); // to get the right dest index
 
     for(int i = 0; i < temp_size; i++){
-        dest[int(i/factor)] += weight*temp[i];
+        dest[int(i/factor)] += weight_2 * weight_1 * src[ int(i*weight_1) ];
     }
 
-    free(temp);
 }
 
 /**
