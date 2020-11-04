@@ -41,6 +41,8 @@ private slots:
 
     void checkKeypadEntry();
 
+    void lswifiHandleData();
+
     void on_frequencySlider_sliderPressed();
 
     void on_frequencySlider_actionTriggered(int action);
@@ -137,6 +139,7 @@ private:
     AMQPQueue * log_qu = nullptr;
     State* selected_state = nullptr;
     County* selected_county = nullptr;
+    QProcess* lswifiProc = nullptr;
     void initWidgets();
     double getBandwidthSetpoint();
     double getCenterFreqSetpoint();

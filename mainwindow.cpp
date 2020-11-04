@@ -784,10 +784,27 @@ void MainWindow::on_stopScanButton_clicked()
     ui->currentChannelInfoLbl->setText("----");
 }
 
+
+void MainWindow::lswifiHandleData(){
+
+    QString list = QString(lswifiProc->readAllStandardOutput());
+
+    ui->wifiNetworksComboBox->clear();
+    QStringList ssidList = list.split(',');
+    ui->wifiNetworksComboBox->addItems(ssidList);
+    for(auto s : ssidList){
+      this->logMessage(s);
+    }
+}
+
 void MainWindow::on_findWifiBtn_clicked()
 {
     // use lswifi then populate combobox with SSID's
     QProcessEnvironment sys = QProcessEnvironment::systemEnvironment();
+
+    if(lswifiProc != nullptr && lswifiProc->state() == QProcess::Running){
+        lswifiProc->kill();
+    }
 
     if(sys.contains("LSWIFI_PATH")){
         // check for file existance
@@ -795,19 +812,9 @@ void MainWindow::on_findWifiBtn_clicked()
         if(QFile::exists(path) && QFile::permissions(path) & (QFileDevice::ExeGroup | QFileDevice::ExeUser | QFileDevice::ExeOther)){
             // exists and we can run it
             this->logMessage(QString("running %1...").arg(path));
-            QProcess* lswifiProc = new QProcess(this);
+            lswifiProc = new QProcess(this);
+            connect(lswifiProc, &QProcess::readyReadStandardOutput, this, &MainWindow::lswifiHandleData);
             lswifiProc->start(QString("%1").arg(path), QStringList());
-            if(!lswifiProc->waitForStarted()){
-              return;
-            }
-            QString list = QString(lswifiProc->readAllStandardOutput());
-
-            ui->wifiNetworksComboBox->clear();
-            QStringList ssidList = list.split(',');
-            ui->wifiNetworksComboBox->addItems(ssidList);
-            for(auto s : ssidList){
-              this->logMessage(s);
-            }
 
         }else{
             this->logMessage("lswifi.py not found.");
