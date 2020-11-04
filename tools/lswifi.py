@@ -9,7 +9,6 @@ scan = stream.read()
 ssid_list = []
 
 for line in scan.split('\n'):
-    print(line)
     if 'ESSID' in line:
         ssid_list.append(line.strip().split(':')[1].strip('"'))
 
