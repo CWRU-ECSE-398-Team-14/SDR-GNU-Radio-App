@@ -798,12 +798,11 @@ void MainWindow::on_findWifiBtn_clicked()
             QProcess* lswifiProc = new QProcess(this);
             lswifiProc->start(QString("%1").arg(path), QStringList());
             QString list = QString(lswifiProc->readAllStandardOutput());
-            std::stringstream iss(list.toStdString());
-            QVector<QVector<QString>> ssids = read_csv(iss);
-            for(auto ssid : ssids[0]){
-                this->logMessage(ssid);
-                ui->wifiNetworksComboBox->addItem(ssid);
-            }
+
+            ui->wifiNetworksComboBox->clear();
+            QStringList ssidList = list.split(',');
+            ui->wifiNetworksComboBox->addItems(ssidList);
+
         }else{
             this->logMessage("lswifi.py not found.");
         }
