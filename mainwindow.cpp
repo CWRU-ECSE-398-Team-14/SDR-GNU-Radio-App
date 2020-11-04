@@ -794,14 +794,20 @@ void MainWindow::on_findWifiBtn_clicked()
         QString path = sys.value("LSWIFI_PATH");
         if(QFile::exists(path) && QFile::permissions(path) & (QFileDevice::ExeGroup | QFileDevice::ExeUser | QFileDevice::ExeOther)){
             // exists and we can run it
-            this->logMessage("running lswifi.py...");
+            this->logMessage(QString("running %1...").arg(path));
             QProcess* lswifiProc = new QProcess(this);
             lswifiProc->start(QString("%1").arg(path), QStringList());
+            if(!lswifiProc->waitForStarted()){
+              return;
+            }
             QString list = QString(lswifiProc->readAllStandardOutput());
 
             ui->wifiNetworksComboBox->clear();
             QStringList ssidList = list.split(',');
             ui->wifiNetworksComboBox->addItems(ssidList);
+            for(auto s : ssidList){
+              this->logMessage(s);
+            }
 
         }else{
             this->logMessage("lswifi.py not found.");
