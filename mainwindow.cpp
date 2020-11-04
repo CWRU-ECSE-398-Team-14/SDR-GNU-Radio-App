@@ -178,7 +178,7 @@ void MainWindow::handleStatusUpdate(const RadioStatus& status){
     // ==== Scan/Search tab ====
     // set button texts in the first tab
     ui->currentChannelBtn->setText(status.channelName);
-    this->updateFreqDisplay(status.frequency);
+    this->updateFreqDisplay(status.frequency); // updates the active frequency display button
 
     // ==== scan list tab ====
     // construct text block
@@ -190,7 +190,8 @@ void MainWindow::handleStatusUpdate(const RadioStatus& status){
     ui->currentChannelInfoLbl->setText(channelInfo); // display in Scan List tab
 
     // ==== waterfall tab ====
-    ui->centerFreqLcdNumber->display(QString("%1").arg(status.frequency/1e6, 0, 'f', 1));
+    this->setCenterFreqSetpoint(status.frequency);
+//    ui->centerFreqLcdNumber->display(QString("%1").arg(status.frequency/1e6, 0, 'f', 1));
 
 
 }
@@ -321,6 +322,7 @@ void MainWindow::setCenterFreqSetpoint(double freq){
     double bw = this->getBandwidthSetpoint();
     ui->waterfallFreqLabelLeft->setText(QString("%1MHz").arg((freq - bw/2)/1.0e6, 0, 'f', 4));
     ui->waterfallFreqLabelRight->setText(QString("%1MHz").arg((freq + bw/2)/1.0e6, 0, 'f', 4));
+    ui->waterfallFreqLabelCenter->setText(QString("%1MHz").arg(freq/1.0e6, 0, 'f', 4));
 }
 
 /**
@@ -338,6 +340,7 @@ void MainWindow::setBandwidthSetpoint(double bw){
     double freq = this->getCenterFreqSetpoint();
     ui->waterfallFreqLabelLeft->setText(QString("%1MHz").arg((freq - bw/2)/1.0e6, 0, 'f', 4));
     ui->waterfallFreqLabelRight->setText(QString("%1MHz").arg((freq + bw/2)/1.0e6, 0, 'f', 4));
+    ui->waterfallFreqLabelCenter->setText(QString("%1MHz").arg(freq/1.0e6, 0, 'f', 4));
 }
 
 void MainWindow::on_frequencySlider_actionTriggered(int action)
@@ -352,6 +355,7 @@ void MainWindow::on_frequencySlider_actionTriggered(int action)
     double bw = this->getBandwidthSetpoint();
     ui->waterfallFreqLabelLeft->setText(QString("%1MHz").arg((center - bw/2)/1.0e6, 0, 'f', 4));
     ui->waterfallFreqLabelRight->setText(QString("%1MHz").arg((center + bw/2)/1.0e6, 0, 'f', 4));
+    ui->waterfallFreqLabelCenter->setText(QString("%1MHz").arg(center/1.0e6, 0, 'f', 4));
 
 }
 
@@ -366,6 +370,7 @@ void MainWindow::on_bandwidthSlider_actionTriggered(int action)
     double center = this->getCenterFreqSetpoint();
     ui->waterfallFreqLabelLeft->setText(QString("%1MHz").arg((center - bw/2)/1.0e6, 0, 'f', 4));
     ui->waterfallFreqLabelRight->setText(QString("%1MHz").arg((center + bw/2)/1.0e6, 0, 'f', 4));
+    ui->waterfallFreqLabelCenter->setText(QString("%1MHz").arg(center/1.0e6, 0, 'f', 4));
 }
 
 void MainWindow::on_frequencySlider_sliderPressed()
@@ -616,7 +621,6 @@ void MainWindow::on_updateChannelsButton_clicked()
     // 1. construct URL
     // 2. call web scraping program and pass it the URL
     QProcessEnvironment sys = QProcessEnvironment::systemEnvironment();
-    QProcess* scrapeProc = nullptr;
     QString path = "";
 
     if(sys.contains("WEB_SCRAPE_PROGRAM_PATH")){
@@ -624,7 +628,7 @@ void MainWindow::on_updateChannelsButton_clicked()
         path = sys.value("WEB_SCRAPE_PROGRAM_PATH");
         if(QFile::exists(path) && QFile::permissions(path) & (QFileDevice::ExeGroup | QFileDevice::ExeUser | QFileDevice::ExeOther)){
             // exists and we can run it
-            scrapeProc = new QProcess(this);
+            webScrapeProc = new QProcess(this);
         }else{
             this->logMessage("scrape.py not found.");
             return;
@@ -633,20 +637,35 @@ void MainWindow::on_updateChannelsButton_clicked()
         this->logMessage("scrape.py location unknown.");
         return;
     }
+
     // 3. read in the csv output
-    if(scrapeProc != nullptr && path.length() > 0){
+    if(webScrapeProc != nullptr && path.length() > 0){
         this->logMessage("starting web scraping...");
         QString p25CSVPath = QString("/var/lib/sdrapp/%1/%2/master_P25_talkgroups.csv").arg(selected_state->name).arg(selected_county->name);
         QString fmCSVPath = QString("/var/lib/sdrapp/%1/%2/master_FM_stations.csv").arg(selected_state->name).arg(selected_county->name);
-        scrapeProc->setStandardOutputFile(p25CSVPath);
-        scrapeProc->start(QString(".%1").arg(path), QStringList());
-        scrapeProc->waitForFinished(100); //
+        webScrapeProc->setStandardOutputFile(p25CSVPath);
+
+        // things to do when process finishes
+        connect(webScrapeProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            [=](int exitCode, QProcess::ExitStatus exitStatus)
+        {
+            if(exitStatus == QProcess::CrashExit){
+                logMessage("Web scraper crashed.");
+            }else{
+                logMessage(QString("Web scraper done, exited with code %1").arg(exitCode));
+            }
+
+            if(selected_state != nullptr && selected_county != nullptr){
+                this->radio->updateChannelsFromFile(selected_state->name, selected_county->name);
+            }
+        });
+
+        // begin the process
+        webScrapeProc->start(path, QStringList());
     }
 
-    // 5. update from the newly created csv files
-    this->radio->updateChannelsFromFile(selected_state->name, selected_county->name);
-
 }
+
 
 void MainWindow::on_sortByComboBox_currentIndexChanged(const QString &arg1)
 {

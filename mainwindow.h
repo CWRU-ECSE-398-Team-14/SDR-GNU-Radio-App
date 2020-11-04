@@ -140,6 +140,7 @@ private:
     State* selected_state = nullptr;
     County* selected_county = nullptr;
     QProcess* lswifiProc = nullptr;
+    QProcess* webScrapeProc = nullptr;
     void initWidgets();
     double getBandwidthSetpoint();
     double getCenterFreqSetpoint();

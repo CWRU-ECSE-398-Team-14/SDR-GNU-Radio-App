@@ -839,8 +839,8 @@
      <widget class="QSlider" name="frequencySlider">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>180</y>
+        <x>7</x>
+        <y>190</y>
         <width>450</width>
         <height>16</height>
        </rect>
@@ -907,8 +907,8 @@
      <widget class="QLCDNumber" name="centerFreqLcdNumber">
       <property name="geometry">
        <rect>
-        <x>323</x>
-        <y>150</y>
+        <x>320</x>
+        <y>160</y>
         <width>91</width>
         <height>31</height>
        </rect>
@@ -948,8 +948,8 @@
      <widget class="QLabel" name="centerFreqLabel">
       <property name="geometry">
        <rect>
-        <x>13</x>
-        <y>160</y>
+        <x>10</x>
+        <y>170</y>
         <width>110</width>
         <height>19</height>
        </rect>
@@ -1007,7 +1007,7 @@
        <rect>
         <x>10</x>
         <y>130</y>
-        <width>181</width>
+        <width>161</width>
         <height>20</height>
        </rect>
       </property>
@@ -1024,8 +1024,8 @@
      <widget class="QLabel" name="centerFreqUnitsLabel">
       <property name="geometry">
        <rect>
-        <x>423</x>
-        <y>160</y>
+        <x>420</x>
+        <y>170</y>
         <width>41</width>
         <height>19</height>
        </rect>
@@ -1134,6 +1134,28 @@
        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
       </property>
      </widget>
+     <widget class="QLabel" name="waterfallFreqLabelCenter">
+      <property name="geometry">
+       <rect>
+        <x>170</x>
+        <y>130</y>
+        <width>141</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Liberation Sans</family>
+        <pointsize>12</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>0Hz</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
     </widget>
     <widget class="QWidget" name="setupTab">
      <attribute name="title">
@@ -1143,9 +1165,9 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>20</y>
+        <y>10</y>
         <width>171</width>
-        <height>121</height>
+        <height>131</height>
        </rect>
       </property>
      </widget>
@@ -1178,7 +1200,7 @@
         <x>280</x>
         <y>60</y>
         <width>171</width>
-        <height>27</height>
+        <height>31</height>
        </rect>
       </property>
      </widget>
@@ -1188,7 +1210,7 @@
         <x>200</x>
         <y>60</y>
         <width>71</width>
-        <height>21</height>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
@@ -1214,7 +1236,7 @@
         <x>280</x>
         <y>100</y>
         <width>171</width>
-        <height>27</height>
+        <height>31</height>
        </rect>
       </property>
      </widget>
@@ -1224,7 +1246,7 @@
         <x>200</x>
         <y>100</y>
         <width>71</width>
-        <height>21</height>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
