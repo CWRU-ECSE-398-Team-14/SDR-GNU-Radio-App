@@ -73,7 +73,7 @@ ExecStart=/usr/local/bin/logger.py
 [Install]
 WantedBy=multi-user.target" > $SOURCE_DIR/tools/sdrlogger.service
 
-# copy start script to sensible locations
+# copy logger script to sensible locations
 sudo cp $SOURCE_DIR/tools/logger.py /usr/local/bin
 sudo chown $USER /usr/local/bin/logger.py
 sudo chmod 755 /usr/local/bin/logger.py
@@ -107,7 +107,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable sdrgnuradio.service
 sudo systemctl enable sdrlogger.service
 
-
+# ==== LSWIFI ====
 # edit sudoers file to allow no password when running iwlist wlan0 scan
 SUDOERS_FILE=$(sudo cat /etc/sudoers)
 if ! echo "$SUDOERS_FILE" | grep -qw "iwlist"; then
@@ -126,5 +126,10 @@ sudo chmod 775 $SHARED_DATA_DIR
 
 # copy over data files
 cp $SOURCE_DIR/tools/us_counties.csv $SHARED_DATA_DIR
+
+# copy lswifi script to expected location
+sudo cp $SOURCE_DIR/tools/lswifi.py $SHARED_DATA_DIR
+sudo chown $USER $SHARED_DATA_DIR/lswifi.py
+sudo chmod 755 $SHARED_DATA_DIR/lswifi.py
 
 echo "Install done. Reboot required."
