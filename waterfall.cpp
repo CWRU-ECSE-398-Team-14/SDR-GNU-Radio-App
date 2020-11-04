@@ -168,7 +168,13 @@ double map(double x, double in_min, double in_max, double out_min, double out_ma
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-
+/**
+ * @brief scale scales array src to array dest with minimal losses
+ * @param dest starts as an array of 0's, will be populated with scaled values computed from src
+ * @param dest_size size of dest
+ * @param src source data to fit into dest
+ * @param src_size size of src
+ */
 void scale(double* dest, int dest_size, double* src, int src_size){
     int temp_size = dest_size*src_size;
 

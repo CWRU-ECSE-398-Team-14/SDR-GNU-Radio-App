@@ -483,7 +483,7 @@ void Radio::setupRadio(){
 
     // start the GNU radio process
     // std output ready signal -> readRadioProcessStdout
-//    connect(this->radioProcess, &QProcess::readyReadStandardOutput, this, &Radio::readRadioProcessStdout);
+//
 //    this->radioProcess->start(this->radioProgramPath, QStringList() << this->radioProgramArgs);
 //    this->radioProcess->waitForStarted(5000); // allow 5 seconds to start
 

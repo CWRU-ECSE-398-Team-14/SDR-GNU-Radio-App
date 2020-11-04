@@ -111,6 +111,7 @@ void MainWindow::initWidgets(){
     // ==== waterfall display setup ====
     //      freq fine adjust slider
     ui->freqFineAdjustSlider->setValue((ui->freqFineAdjustSlider->maximum() + ui->freqFineAdjustSlider->minimum())/2);
+    this->setBandwidthSetpoint(12500.0);
 
     //      limit labels on waterfall display
     double center   = this->getCenterFreqSetpoint(); // wherever it happens to be
@@ -332,6 +333,8 @@ void MainWindow::setBandwidthSetpoint(double bw){
                                double(ui->bandwidthSlider->maximum())) );
     ui->bandwidthSlider->setValue(slider_value);
 
+    ui->bandwidthLcdNumber->display(QString("%1").arg(bw/1.0e3, 0, 'f', 1));
+
     double freq = this->getCenterFreqSetpoint();
     ui->waterfallFreqLabelLeft->setText(QString("%1MHz").arg((freq - bw/2)/1.0e6, 0, 'f', 4));
     ui->waterfallFreqLabelRight->setText(QString("%1MHz").arg((freq + bw/2)/1.0e6, 0, 'f', 4));
@@ -339,15 +342,16 @@ void MainWindow::setBandwidthSetpoint(double bw){
 
 void MainWindow::on_frequencySlider_actionTriggered(int action)
 {
-    double freq = this->getCenterFreqSetpoint();
+    double center = this->getCenterFreqSetpoint(); // pull value from slider position
+    double freq = center + this->getFreqFineAdjustOffset(); // consider the offset from fine adjust slider
     emit changeFrequency(freq); // signal to radio the change frequency
     // this->updateFreqDisplay(this->radio->getCenterFreq());
     ui->centerFreqLcdNumber->display(QString("%1").arg(freq/1.0e6, 0, 'f', 1));
 //    ui->activeFrequency->display(longs);
 
     double bw = this->getBandwidthSetpoint();
-    ui->waterfallFreqLabelLeft->setText(QString("%1MHz").arg((freq - bw/2)/1.0e6, 0, 'f', 4));
-    ui->waterfallFreqLabelRight->setText(QString("%1MHz").arg((freq + bw/2)/1.0e6, 0, 'f', 4));
+    ui->waterfallFreqLabelLeft->setText(QString("%1MHz").arg((center - bw/2)/1.0e6, 0, 'f', 4));
+    ui->waterfallFreqLabelRight->setText(QString("%1MHz").arg((center + bw/2)/1.0e6, 0, 'f', 4));
 
 }
 
@@ -359,9 +363,9 @@ void MainWindow::on_bandwidthSlider_actionTriggered(int action)
     const QString s = QString("%1").arg(this->radio->getBandwidth()/1.0e3, 0, 'f', 1);
     ui->bandwidthLcdNumber->display(s);
 
-    double freq = this->getCenterFreqSetpoint();
-    ui->waterfallFreqLabelLeft->setText(QString("%1MHz").arg((freq - bw/2)/1.0e6, 0, 'f', 4));
-    ui->waterfallFreqLabelRight->setText(QString("%1MHz").arg((freq + bw/2)/1.0e6, 0, 'f', 4));
+    double center = this->getCenterFreqSetpoint();
+    ui->waterfallFreqLabelLeft->setText(QString("%1MHz").arg((center - bw/2)/1.0e6, 0, 'f', 4));
+    ui->waterfallFreqLabelRight->setText(QString("%1MHz").arg((center + bw/2)/1.0e6, 0, 'f', 4));
 }
 
 void MainWindow::on_frequencySlider_sliderPressed()
@@ -611,9 +615,35 @@ void MainWindow::on_updateChannelsButton_clicked()
     // call the web scraping program and process it's output
     // 1. construct URL
     // 2. call web scraping program and pass it the URL
+    QProcessEnvironment sys = QProcessEnvironment::systemEnvironment();
+    QProcess* scrapeProc = nullptr;
+    QString path = "";
+
+    if(sys.contains("WEB_SCRAPE_PROGRAM_PATH")){
+        // check for file existance
+        path = sys.value("WEB_SCRAPE_PROGRAM_PATH");
+        if(QFile::exists(path) && QFile::permissions(path) & (QFileDevice::ExeGroup | QFileDevice::ExeUser | QFileDevice::ExeOther)){
+            // exists and we can run it
+            scrapeProc = new QProcess(this);
+        }else{
+            this->logMessage("scrape.py not found.");
+            return;
+        }
+    }else{
+        this->logMessage("scrape.py location unknown.");
+        return;
+    }
     // 3. read in the csv output
-    // 4. store in the appropriate directory
-    // 5. update from the new csv files
+    if(scrapeProc != nullptr && path.length() > 0){
+        this->logMessage("starting web scraping...");
+        QString p25CSVPath = QString("/var/lib/sdrapp/%1/%2/master_P25_talkgroups.csv").arg(selected_state->name).arg(selected_county->name);
+        QString fmCSVPath = QString("/var/lib/sdrapp/%1/%2/master_FM_stations.csv").arg(selected_state->name).arg(selected_county->name);
+        scrapeProc->setStandardOutputFile(p25CSVPath);
+        scrapeProc->start(QString(".%1").arg(path), QStringList());
+        scrapeProc->waitForFinished(100); //
+    }
+
+    // 5. update from the newly created csv files
     this->radio->updateChannelsFromFile(selected_state->name, selected_county->name);
 
 }
