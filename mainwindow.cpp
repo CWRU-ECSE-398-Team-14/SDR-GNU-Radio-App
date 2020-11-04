@@ -796,7 +796,7 @@ void MainWindow::on_findWifiBtn_clicked()
             // exists and we can run it
             this->logMessage("running lswifi.py...");
             QProcess* lswifiProc = new QProcess(this);
-            lswifiProc->start(QString(".%1").arg(path), QStringList());
+            lswifiProc->start(QString("%1").arg(path), QStringList());
             QString list = QString(lswifiProc->readAllStandardOutput());
             std::stringstream iss(list.toStdString());
             QVector<QVector<QString>> ssids = read_csv(iss);
