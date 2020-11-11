@@ -139,9 +139,9 @@ void Waterfall::doubleToPixel(double value, uchar* pixData){
     int ind = nconstrain(int(0.5 + (value - fftMin)*resolution), 0, lutSize - 1);
 
     // blue red green alpha
-    pixData[0] = lut[ind].blue;
-    pixData[1] = lut[ind].red;
-    pixData[2] = lut[ind].green;
+    pixData[0] = lut[ind].red;
+    pixData[1] = lut[ind].green;
+    pixData[2] = lut[ind].blue;
     pixData[3] = lut[ind].alpha;
 
 }
