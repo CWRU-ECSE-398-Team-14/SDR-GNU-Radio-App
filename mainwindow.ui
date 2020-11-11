@@ -1161,31 +1161,11 @@
      <attribute name="title">
       <string>Setup</string>
      </attribute>
-     <widget class="QListView" name="statesListView">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>10</y>
-        <width>171</width>
-        <height>131</height>
-       </rect>
-      </property>
-     </widget>
-     <widget class="QListView" name="countiesListView">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>150</y>
-        <width>171</width>
-        <height>121</height>
-       </rect>
-      </property>
-     </widget>
      <widget class="QPushButton" name="updateChannelsButton">
       <property name="geometry">
        <rect>
-        <x>200</x>
-        <y>10</y>
+        <x>30</x>
+        <y>230</y>
         <width>141</width>
         <height>41</height>
        </rect>
@@ -1197,8 +1177,8 @@
      <widget class="QComboBox" name="sortByComboBox">
       <property name="geometry">
        <rect>
-        <x>280</x>
-        <y>60</y>
+        <x>290</x>
+        <y>10</y>
         <width>171</width>
         <height>31</height>
        </rect>
@@ -1207,8 +1187,8 @@
      <widget class="QLabel" name="sortByLabel">
       <property name="geometry">
        <rect>
-        <x>200</x>
-        <y>60</y>
+        <x>210</x>
+        <y>10</y>
         <width>71</width>
         <height>31</height>
        </rect>
@@ -1224,17 +1204,17 @@
       <property name="geometry">
        <rect>
         <x>200</x>
-        <y>150</y>
+        <y>90</y>
         <width>261</width>
-        <height>121</height>
+        <height>131</height>
        </rect>
       </property>
      </widget>
      <widget class="QComboBox" name="categoryComboBox">
       <property name="geometry">
        <rect>
-        <x>280</x>
-        <y>100</y>
+        <x>290</x>
+        <y>50</y>
         <width>171</width>
         <height>31</height>
        </rect>
@@ -1243,8 +1223,8 @@
      <widget class="QLabel" name="categoryLabel">
       <property name="geometry">
        <rect>
-        <x>200</x>
-        <y>100</y>
+        <x>210</x>
+        <y>50</y>
         <width>71</width>
         <height>31</height>
        </rect>
@@ -1259,15 +1239,66 @@
      <widget class="QPushButton" name="addToScanListBtn">
       <property name="geometry">
        <rect>
-        <x>350</x>
-        <y>10</y>
-        <width>101</width>
+        <x>220</x>
+        <y>230</y>
+        <width>221</width>
         <height>41</height>
        </rect>
       </property>
       <property name="text">
-       <string>Add to 
-Scan List</string>
+       <string>Add to Scan List</string>
+      </property>
+     </widget>
+     <widget class="QListView" name="setupListView">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>30</y>
+        <width>181</width>
+        <height>161</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="setupStateLabel">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>181</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Select State</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="setupStateNextButton">
+      <property name="geometry">
+       <rect>
+        <x>100</x>
+        <y>190</y>
+        <width>91</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>NEXT</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="setupStateBackButton">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>190</y>
+        <width>91</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>BACK</string>
       </property>
      </widget>
     </widget>
