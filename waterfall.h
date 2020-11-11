@@ -51,8 +51,8 @@ private:
     int maxHeight;
     int bmpFileSize;
     int pixelBytes;
-    double fftMin = -100.0;
-    double fftMax = 10.0;
+    double fftMin = -50.0;
+    double fftMax = 50.0;
     double fftHalf;
     double resolution = 100.0; // steps per dB
     uint8_t bpp = 32;

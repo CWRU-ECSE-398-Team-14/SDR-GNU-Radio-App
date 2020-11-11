@@ -25,28 +25,22 @@ Waterfall::Waterfall(QObject *parent, int width, int maxHeight) :
     lutSize = (fftMax - fftMin)*resolution + 1;
     this->lut = (Pixel*)malloc(lutSize * sizeof(Pixel));
     double pwr = fftMin; // pwr in dBm
-    double half = pow(10.0, fftHalf/10.0);
     for(int i = 0; i < lutSize; i++){
-        double value = pow(10.0, pwr/10.0);
-
         // start with blue
-        double blue = half - value;
-        if(blue < 0.0){
-            blue = 0.0;
-        }
+        double blue = fftHalf - pwr;
+        blue = constrain(blue, 0.0, fftHalf - fftMin);
 
         // now green
-        double green = half - fabs(half - value);
+        double green = fftHalf - fabs(fftHalf - pwr);
+        green = constrain(green, 0.0, fftHalf - fabs(fftHalf));
 
         // lastly red
-        double red = value - half;
-        if(red < 0.0){
-            red = 0.0;
-        }
+        double red = pwr - fftHalf;
+        red = constrain(red, 0.0, fftMax - fftHalf);
 
-        lut[i].blue = uchar(map(blue, 0.0, half, 0.0, 255.0) + 0.5);
-        lut[i].green = uchar(map(green, 0.0, half, 0.0, 255.0) + 0.5);
-        lut[i].red = uchar(map(red, 0.0, half, 0.0, 255.0) + 0.5);
+        lut[i].blue = uchar(map(blue, 0.0, fftHalf - fftMin, 0.0, 255.0) + 0.5);
+        lut[i].green = uchar(map(green, 0.0, fftHalf - fabs(fftHalf), 0.0, 255.0) + 0.5);
+        lut[i].red = uchar(map(red, 0.0, fftMax - fftHalf, 0.0, 255.0) + 0.5);
         lut[i].alpha = 0;
 
         pwr += 1.0/resolution;
