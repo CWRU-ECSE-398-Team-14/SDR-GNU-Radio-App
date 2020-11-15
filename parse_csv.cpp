@@ -39,12 +39,13 @@ void write_csv(QVector<QVector<QString>> csv_data, std::ostream& os){
 
 QVector<QVector<QString>> read_csv_file(QString path){
     std::filebuf fbuf;
-    QVector<QVector<QString>> retval;
     if(fbuf.open(path.toStdString(), std::ios::in)){
         std::istream is(&fbuf);
-        retval = read_csv(is);
+        return read_csv(is);
+    }else{
+        qDebug() << "Can't open " << path << " for reading";
     }
-    return retval;
+    return QVector<QVector<QString>>();
 }
 
 /**

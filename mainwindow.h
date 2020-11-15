@@ -53,7 +53,7 @@ private slots:
 
     void lswifiHandleData();
 
-    void scrapeSystemsHandleStdout();
+    void scrapeSystemsHandleStdout(int exitCode, QProcess::ExitStatus exitStatus);
 
     void scrapeChannelsHandleStdout(int exitCode, QProcess::ExitStatus exitStatus);
 

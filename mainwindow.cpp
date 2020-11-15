@@ -52,9 +52,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     // ==== MainWindow internal signal slot connections ====
     this->scrapeSystemsProc = new QProcess(this);
-    connect(scrapeSystemsProc, &QProcess::readyReadStandardOutput, this, &MainWindow::scrapeSystemsHandleStdout);
+    connect(scrapeSystemsProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &MainWindow::scrapeSystemsHandleStdout); //&QProcess::readyReadStandardOutput
 
     // web scraping process finished signal to corresponding slot
+    this->webScrapeProc = new QProcess(this);
     connect(webScrapeProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &MainWindow::scrapeChannelsHandleStdout);
 
 
@@ -597,6 +598,11 @@ void MainWindow::on_updateChannelsButton_clicked()
     if(selected_state != nullptr && selected_county != nullptr){
         this->logMessage(QString("Updating channels for %2 County, %1").arg(selected_state->name).arg(selected_county->name));
     }else{
+        this->logMessage("Not updating channels:");
+        if(selected_state == nullptr)
+            this->logMessage(" - selected_state is a null pointer");
+        if(selected_county == nullptr)
+            this->logMessage(" - selected_county is a null pointer");
         return;
     }
 
@@ -604,7 +610,7 @@ void MainWindow::on_updateChannelsButton_clicked()
         // need to figure out selected system and pull channels based on that
         QString sysStr = ui->setupListView->currentIndex().data().toString();
         QStringList sysList = sysStr.split(':');
-        this->currentSystem = QPair<QString, int>(sysList[0].remove(' '), sysList[1].toInt());
+        this->currentSystem = QPair<QString, int>(sysList[1], sysList[0].toInt());
     }
     // call the web scraping program and process it's output
     // 1. construct URL
@@ -612,29 +618,26 @@ void MainWindow::on_updateChannelsButton_clicked()
     QProcessEnvironment sys = QProcessEnvironment::systemEnvironment();
     QString path = "";
 
+    // check for env variable existance
     if(sys.contains("WEB_SCRAPE_PROGRAM_PATH")){
-        // check for file existance
         path = sys.value("WEB_SCRAPE_PROGRAM_PATH");
-        if(QFile::exists(path) && QFile::permissions(path) & (QFileDevice::ExeGroup | QFileDevice::ExeUser | QFileDevice::ExeOther)){
-            // exists and we can run it
-            webScrapeProc = new QProcess(this);
-        }else{
-            this->logMessage("scrape.py not found.");
-            return;
-        }
     }else{
-        this->logMessage("scrape.py location unknown.");
+        logMessage("web scraping script path unknown.");
         return;
     }
 
-    // 3. read in the csv output
-    if(webScrapeProc != nullptr && path.length() > 0){
+    // 3. start the program
+    if(QFile::exists(path)){
         this->logMessage("starting web scraping...");
         QString tempCSVPath = QString("/var/lib/sdrapp/%1/webscrape_results.csv").arg("tmp");
         webScrapeProc->setStandardOutputFile(tempCSVPath);
 
-        // begin the process
-        webScrapeProc->start(path, QStringList());
+        // begin the process, pass in the current System ID
+        logMessage(QString("%1: %2").arg("Current system ID").arg(this->currentSystem.second));
+        webScrapeProc->start("python3", QStringList() << path << QString("%1").arg(this->currentSystem.second));
+    }else{
+        this->logMessage("web scraping script does not exist.");
+        return;
     }
 
 }
@@ -792,16 +795,22 @@ void MainWindow::lswifiHandleData(){
 /**
  * @brief MainWindow::scrapeSystemsHandleStdout slot to read standard output from the scrape systems process
  */
-void MainWindow::scrapeSystemsHandleStdout(){
+void MainWindow::scrapeSystemsHandleStdout(int exitCode, QProcess::ExitStatus exitStatus){
+    if(exitStatus == QProcess::CrashExit){
+        logMessage("Systems web scraper crashed.");
+    }else{
+        logMessage(QString("Systems web scraper done, exited with code %1").arg(exitCode));
+    }
     QString output(scrapeSystemsProc->readAllStandardOutput());
+    logMessage(output);
     std::istringstream iss(output.toStdString());
     QVector<QVector<QString>> csv = read_csv(iss);
 
     int name_ind = -1, id_ind = -1;
     for(int i = 0; i < csv[0].length(); i++){
-        if(csv[0][i].compare("system name", Qt::CaseInsensitive) == 0)
+        if(csv[0][i].contains("system name", Qt::CaseInsensitive))
             name_ind = i;
-        else if(csv[0][i].compare("system id", Qt::CaseInsensitive) == 0)
+        else if(csv[0][i].contains("system id", Qt::CaseInsensitive))
             id_ind = i;
     }
 
@@ -818,7 +827,7 @@ void MainWindow::scrapeSystemsHandleStdout(){
     QStringList modelList;
 
     for(QPair<QString, int> sys : selected_county->systems){
-        modelList << QString("%1 : %2").arg(sys.first).arg(sys.second);
+        modelList << QString("%1 : %2").arg(sys.second).arg(sys.first);
     }
 
     QAbstractItemModel *model = new QStringListModel(modelList);
@@ -834,33 +843,50 @@ void MainWindow::scrapeChannelsHandleStdout(int exitCode, QProcess::ExitStatus e
     if(exitStatus == QProcess::CrashExit){
         logMessage("Web scraper crashed.");
     }else{
+        qDebug() << QString("Web scraper done, exited with code %1").arg(exitCode);
         logMessage(QString("Web scraper done, exited with code %1").arg(exitCode));
     }
     QString tempCSVPath = QString("/var/lib/sdrapp/%1/webscrape_results.csv").arg("tmp");
     QVector<QVector<QString>> csv = read_csv_file(tempCSVPath);
+    QString fname;
+    QVector<QString> protocolColumn(csv.length());
 
     if(this->radio->getProtocol().compare("p25", Qt::CaseInsensitive) == 0){
         // P25 specific things
+        fname = QString("/var/lib/sdrapp/%1/%2/master_P25_talkgroups.csv").arg(selected_state->name).arg(selected_county->name);
         QString current_system_name = ui->setupListView->currentIndex().data().toString();
         QVector<QString> sysNameColumn(csv.length());
         QVector<QString> sysIdColumn(csv.length());
+        sysNameColumn.fill(this->currentSystem.first);
+        sysIdColumn.fill(QString("%1").arg(this->currentSystem.second));
+
         sysNameColumn[0] = "System Name";
         sysIdColumn[0] = "System ID";
-        for(int i = 1; i < csv.length(); i++){
-            sysNameColumn[i] = "None"; // make this the actual system name
-            sysIdColumn[i] = "0";
-        }
+
+        protocolColumn.fill("P25");
         add_csv_column(csv, sysNameColumn);
         add_csv_column(csv, sysIdColumn);
-        write_csv_file(csv, QString("/var/lib/sdrapp/%1/%2/master_P25_talkgroups.csv").arg(selected_state->name).arg(selected_county->name) );
+
     }else{
         // just FM
-        write_csv_file(csv, QString("/var/lib/sdrapp/%1/%2/master_FM_stations.csv").arg(selected_state->name).arg(selected_county->name));
+        fname = QString("/var/lib/sdrapp/%1/%2/master_FM_stations.csv").arg(selected_state->name).arg(selected_county->name);
+        protocolColumn.fill("FM");
     }
+    protocolColumn[0] = "Protocol";
+    add_csv_column(csv, protocolColumn);
+    QVector<Channel> newChannels = Radio::channelsFromCsv(csv);
+    QVector<Channel> existingChannels = Radio::channelsFromCsv(read_csv_file(fname));
+    QVector<Channel> combinedChannels = Radio::mergeChannels(existingChannels, newChannels); // combine new and existing channels
 
     if(selected_state != nullptr && selected_county != nullptr){
-        this->radio->updateChannelsFromFile(selected_state->name, selected_county->name);
+        // update channels with whatever information will be written to the master CSV file
+        // no need to update from the actual file, we already have the info in a vector
+        this->radio->updateChannels(selected_state->name, selected_county->name, combinedChannels);
     }
+
+    // finally write out to corresponding file
+    write_csv_file( Radio::channelsToCsv(combinedChannels) , fname );
+
 }
 
 void MainWindow::on_findWifiBtn_clicked()
@@ -959,15 +985,16 @@ void MainWindow::on_setupStateNextButton_clicked()
         if(str.compare("p25", Qt::CaseInsensitive) == 0){
             // need to web scrape systems at this point
             QProcessEnvironment sys = QProcessEnvironment::systemEnvironment();
+
             QString scrapeSystemsFile = "";
             if(sys.contains("SCRAPE_SYSTEMS_PATH")){
                 scrapeSystemsFile = sys.value("SCRAPE_SYSTEMS_PATH");
             }else{
                 scrapeSystemsFile = "web_scrape_systems.py";
             }
-
-            if(QFile::exists(scrapeSystemsFile) && QFile::permissions(scrapeSystemsFile) & (QFileDevice::ExeGroup | QFileDevice::ExeUser | QFileDevice::ExeOther)){
-                scrapeSystemsProc->start("python3", QStringList() << scrapeSystemsFile);
+            logMessage("Scrape Systems script: " + scrapeSystemsFile);
+            if(QFile::exists(scrapeSystemsFile)){// && QFile::permissions(scrapeSystemsFile) & (QFileDevice::ExeGroup | QFileDevice::ExeUser | QFileDevice::ExeOther)){
+                scrapeSystemsProc->start("python3", QStringList() << scrapeSystemsFile << QString("%1").arg(selected_county->county_id));
             }else{
                 logMessage("Scrape Systems script either not found or not executable.");
             }
@@ -1077,8 +1104,13 @@ void MainWindow::on_setupListView_clicked(const QModelIndex &index)
         }
         break;
     }case MainWindow::SELECT_SYSTEM:{
+        QStringList parts = str.split(':');
+        this->currentSystem = QPair<QString, int>();
+        this->currentSystem.first = parts[1];
+        this->currentSystem.second = parts[0].remove(' ').toInt();
+        logMessage(QString("Updating currentSystem to <%1,%2>").arg(this->currentSystem.first).arg(this->currentSystem.second));
         if(this->selected_county != nullptr){
-            this->selected_county->currentSystem = str;
+            this->selected_county->currentSystem = parts[1];
             ui->updateChannelsButton->setDisabled(false);
         }
 

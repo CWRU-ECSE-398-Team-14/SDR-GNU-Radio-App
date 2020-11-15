@@ -88,8 +88,10 @@ public:
     Channel(const Channel& ch);
     QJsonObject toJson();
     bool operator==(const Channel& ch);
+    friend bool operator==(const Channel& ch1, const Channel& ch2);
     QString name        = "";
     int     id          = 0; // denoted by the DEC column
+    QString hex         = "";
     QString description = "";
     QString protocol    = "";
     QString mode        = "";
@@ -183,7 +185,11 @@ public:
     void addCountyToState(QString state_name, County county);
     QStringList getStateNames();
     int getCountyId(QString name);
+    static QVector<Channel> channelsFromCsv(QVector<QVector<QString>> csv);
+    static QVector<QVector<QString>> channelsToCsv(QVector<Channel> channels);
     void updateChannelsFromFile(QString state, QString county);
+    void updateChannels(QString state, QString county, QVector<Channel> channels);
+    static QVector<Channel> mergeChannels(QVector<Channel> oldChannels, QVector<Channel> newChannels);
 
 public slots:
     void    setBandwidth    (double bw);

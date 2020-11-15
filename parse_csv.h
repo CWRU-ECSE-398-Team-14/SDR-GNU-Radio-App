@@ -2,6 +2,7 @@
 #define PARSE_CSV_H
 
 #include <QVector>
+#include <QDebug>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
