@@ -132,4 +132,11 @@ sudo cp $SOURCE_DIR/tools/lswifi.py $SHARED_DATA_DIR
 sudo chown $USER $SHARED_DATA_DIR/lswifi.py
 sudo chmod 755 $SHARED_DATA_DIR/lswifi.py
 
+# ==== WebScraping ====
+# make sure web scraping stuff is there
+if [[ ! -d "$SHARED_DATA_DIR/WebScraping" ]]; then
+  mkdir $SHARED_DATA_DIR/WebScraping
+  git clone https://github.com/CWRU-ECSE-398-Team-14/WebScraping.git $SHARED_DATA_DIR/WebScraping
+fi
+
 echo "Install done. Reboot required."
