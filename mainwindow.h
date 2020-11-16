@@ -12,12 +12,22 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
+    // state indicators
+    enum {
+        SELECT_STATE,
+        SELECT_COUNTY,
+        SELECT_SYSTEM,
+        SELECT_PROTOCOL
+    };
+    qint64 startMSecs = 0;
 
 public slots:
     void handleMessage(const QString &);
@@ -42,6 +52,10 @@ private slots:
     void checkKeypadEntry();
 
     void lswifiHandleData();
+
+    void scrapeSystemsHandleStdout(int exitCode, QProcess::ExitStatus exitStatus);
+
+    void scrapeChannelsHandleStdout(int exitCode, QProcess::ExitStatus exitStatus);
 
     void on_frequencySlider_sliderPressed();
 
@@ -99,12 +113,6 @@ private slots:
 
     void on_freqFineAdjustSlider_actionTriggered(int action);
 
-    void on_statesListView_activated(const QModelIndex &index);
-
-    void on_statesListView_clicked(const QModelIndex &index);
-
-    void on_countiesListView_clicked(const QModelIndex &index);
-
     void on_updateChannelsButton_clicked();
 
     void on_sortByComboBox_currentIndexChanged(const QString &arg1);
@@ -127,8 +135,15 @@ private slots:
 
     void on_fmBtn_clicked();
 
+    void on_setupStateNextButton_clicked();
+
+    void on_setupStateBackButton_clicked();
+
+    void on_setupListView_clicked(const QModelIndex &index);
+
 private:
     bool widgetsReady = false;
+    int setupState = MainWindow::SELECT_STATE;
     Ui::MainWindow *ui;
     Radio* radio = nullptr;
     Waterfall* waterfall = nullptr;
@@ -141,6 +156,8 @@ private:
     County* selected_county = nullptr;
     QProcess* lswifiProc = nullptr;
     QProcess* webScrapeProc = nullptr;
+    QProcess* scrapeSystemsProc = nullptr;
+    QPair<QString, int> currentSystem;
     void initWidgets();
     double getBandwidthSetpoint();
     double getCenterFreqSetpoint();

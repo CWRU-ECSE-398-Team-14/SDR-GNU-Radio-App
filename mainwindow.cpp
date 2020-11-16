@@ -5,6 +5,8 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
+    this->startMSecs = QDateTime::currentMSecsSinceEpoch();
+
     ui->setupUi(this);
 
     // ==== rabbitMQ things ====
@@ -48,6 +50,15 @@ MainWindow::MainWindow(QWidget *parent)
     radio->setupRadio(); // basic setup
     radio->start(); // start radio thread
 
+    // ==== MainWindow internal signal slot connections ====
+    this->scrapeSystemsProc = new QProcess(this);
+    connect(scrapeSystemsProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &MainWindow::scrapeSystemsHandleStdout); //&QProcess::readyReadStandardOutput
+
+    // web scraping process finished signal to corresponding slot
+    this->webScrapeProc = new QProcess(this);
+    connect(webScrapeProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &MainWindow::scrapeChannelsHandleStdout);
+
+
     // ==== MainWindow signals to Radio slots ====
     // connect mainwindow signals to radio slots
     connect(this, &MainWindow::changeFrequency, radio, &Radio::setCenterFreq);
@@ -87,21 +98,24 @@ void MainWindow::initWidgets(){
     ui->volumeSlider->setValue(ui->volumeSlider->maximum()/2);
     ui->squelchSlider->setValue(ui->squelchSlider->maximum()/2);
 
+    // ==== SETUP TAB ====
     // populate states scroll area with state names
     QAbstractItemModel *model = new QStringListModel(this->radio->getStateNames());
-    ui->statesListView->setModel(model);
-
-    // empty model for county ListView
-    ui->countiesListView->setModel(new QStringListModel());
+    ui->setupListView->setModel(model);
+    this->setupState = MainWindow::SELECT_STATE;
 
     // populate sort-by box (sort by csv header fields)
-    QStringList sortByFields;
-    sortByFields << "Protocol" << "Tag" << "Mode" << "Talkgroup" << "Group";
-    ui->sortByComboBox->insertItems(0, sortByFields);
+    ui->sortByComboBox->insertItems(0, QStringList() << "Tag" << "Mode" << "Talkgroup" << "Group");
 
     // channels ListView initial setup
     ui->channelsListView->setModel(new QStringListModel());
 
+    ui->updateChannelsButton->setDisabled(true);
+
+    ui->setupStateBackButton->setDisabled(true);
+    ui->setupStateNextButton->setDisabled(false);
+
+    // ==== SCAN LIST TAB ====
     // scan list ListView initial setup
     ui->scanListListView->setModel(new QStringListModel());
 
@@ -280,9 +294,10 @@ void MainWindow::checkKeypadEntry(){
  */
 void MainWindow::logMessage(const QString& text){
     QDateTime dt = QDateTime::currentDateTime();
+    double deltaT = (QDateTime::currentMSecsSinceEpoch() - this->startMSecs)/1000.0;
 
     // print to status pane
-    ui->logViewer->appendPlainText(QString("[%1]: %2").arg(dt.toString()).arg(text));
+    ui->logViewer->appendPlainText(QString("[%1]: %2").arg(deltaT, 10, 'f', 3).arg(text));
 
     // send to logger service
     this->logEvent(text);
@@ -575,47 +590,27 @@ void MainWindow::on_freqFineAdjustSlider_actionTriggered(int action)
     // TODO: adjust the frequency we're tuned to
 }
 
-void MainWindow::on_statesListView_activated(const QModelIndex &index)
-{
-
-}
-
-void MainWindow::on_statesListView_clicked(const QModelIndex &index)
-{
-    // display the counties for this state
-    QString str = index.data().toString();
-    this->selected_state = this->radio->getStateByName(str);
-    QAbstractItemModel *model = new QStringListModel(this->selected_state->getCountyNames());
-    ui->countiesListView->setModel(model);
-}
-
-void MainWindow::on_countiesListView_clicked(const QModelIndex &index)
-{
-    QString str = index.data().toString();
-    if(this->selected_county == nullptr || this->selected_county->name.compare(str) != 0){
-        // new county, do things
-        this->selected_county = this->selected_state->getCountyByName(str);
-
-        // clear the category ListView by setting it to an empty model
-        ui->channelsListView->setModel(new QStringListModel());
-
-        // clear the scan list ListView by setting it to an empty model
-        ui->scanListListView->setModel(new QStringListModel());
-
-        // now see if we have some csv data for this state and county
-        this->radio->updateChannelsFromFile(selected_state->name, selected_county->name);
-    }
-
-
-
-}
-
+/**
+ * @brief MainWindow::on_updateChannelsButton_clicked
+ */
 void MainWindow::on_updateChannelsButton_clicked()
 {
     if(selected_state != nullptr && selected_county != nullptr){
         this->logMessage(QString("Updating channels for %2 County, %1").arg(selected_state->name).arg(selected_county->name));
     }else{
+        this->logMessage("Not updating channels:");
+        if(selected_state == nullptr)
+            this->logMessage(" - selected_state is a null pointer");
+        if(selected_county == nullptr)
+            this->logMessage(" - selected_county is a null pointer");
         return;
+    }
+
+    if(this->radio->getProtocol().compare("p25", Qt::CaseInsensitive) == 0){
+        // need to figure out selected system and pull channels based on that
+        QString sysStr = ui->setupListView->currentIndex().data().toString();
+        QStringList sysList = sysStr.split(':');
+        this->currentSystem = QPair<QString, int>(sysList[1], sysList[0].toInt());
     }
     // call the web scraping program and process it's output
     // 1. construct URL
@@ -623,45 +618,30 @@ void MainWindow::on_updateChannelsButton_clicked()
     QProcessEnvironment sys = QProcessEnvironment::systemEnvironment();
     QString path = "";
 
+    // check for env variable existance
     if(sys.contains("WEB_SCRAPE_PROGRAM_PATH")){
-        // check for file existance
         path = sys.value("WEB_SCRAPE_PROGRAM_PATH");
-        if(QFile::exists(path) && QFile::permissions(path) & (QFileDevice::ExeGroup | QFileDevice::ExeUser | QFileDevice::ExeOther)){
-            // exists and we can run it
-            webScrapeProc = new QProcess(this);
-        }else{
-            this->logMessage("scrape.py not found.");
-            return;
-        }
     }else{
-        this->logMessage("scrape.py location unknown.");
+        logMessage("web scraping script path unknown.");
         return;
     }
 
-    // 3. read in the csv output
-    if(webScrapeProc != nullptr && path.length() > 0){
+    // 3. start the program
+    if(QFile::exists(path)){
         this->logMessage("starting web scraping...");
-        QString p25CSVPath = QString("/var/lib/sdrapp/%1/%2/master_P25_talkgroups.csv").arg(selected_state->name).arg(selected_county->name);
-        QString fmCSVPath = QString("/var/lib/sdrapp/%1/%2/master_FM_stations.csv").arg(selected_state->name).arg(selected_county->name);
-        webScrapeProc->setStandardOutputFile(p25CSVPath);
+        QDir tmpDir(QString("/var/lib/sdrapp/%1").arg("tmp"));
+        if(!tmpDir.exists()){
+            logMessage("Creating tmp directory...");
+            tmpDir.mkpath(tmpDir.absolutePath());
+        }
+        webScrapeProc->setStandardOutputFile(QString("%1/webscrape_results.csv").arg(tmpDir.absolutePath()));
 
-        // things to do when process finishes
-        connect(webScrapeProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            [=](int exitCode, QProcess::ExitStatus exitStatus)
-        {
-            if(exitStatus == QProcess::CrashExit){
-                logMessage("Web scraper crashed.");
-            }else{
-                logMessage(QString("Web scraper done, exited with code %1").arg(exitCode));
-            }
-
-            if(selected_state != nullptr && selected_county != nullptr){
-                this->radio->updateChannelsFromFile(selected_state->name, selected_county->name);
-            }
-        });
-
-        // begin the process
-        webScrapeProc->start(path, QStringList());
+        // begin the process, pass in the current System ID
+        logMessage(QString("%1: %2").arg("Current system ID").arg(this->currentSystem.second));
+        webScrapeProc->start("python3", QStringList() << path << QString("%1").arg(this->currentSystem.second));
+    }else{
+        this->logMessage("web scraping script does not exist.");
+        return;
     }
 
 }
@@ -816,6 +796,111 @@ void MainWindow::lswifiHandleData(){
     }
 }
 
+/**
+ * @brief MainWindow::scrapeSystemsHandleStdout slot to read standard output from the scrape systems process
+ */
+void MainWindow::scrapeSystemsHandleStdout(int exitCode, QProcess::ExitStatus exitStatus){
+    if(exitStatus == QProcess::CrashExit){
+        logMessage("Systems web scraper crashed.");
+    }else{
+        logMessage(QString("Systems web scraper done, exited with code %1").arg(exitCode));
+    }
+    QString output(scrapeSystemsProc->readAllStandardOutput());
+    logMessage(output);
+    std::istringstream iss(output.toStdString());
+    QVector<QVector<QString>> csv = read_csv(iss);
+
+    int name_ind = -1, id_ind = -1;
+    for(int i = 0; i < csv[0].length(); i++){
+        if(csv[0][i].contains("system name", Qt::CaseInsensitive))
+            name_ind = i;
+        else if(csv[0][i].contains("system id", Qt::CaseInsensitive))
+            id_ind = i;
+    }
+
+    // append all the system data to the current county
+    if(name_ind >= 0 && id_ind >= 0 && selected_county != nullptr){
+        for(int i = 1; i < csv.length(); i++){
+            QPair<QString, int> sys(csv[i][name_ind], csv[i][id_ind].toInt());
+            if(!selected_county->systems.contains(sys)){
+                selected_county->systems.push_back(sys);
+            }
+        }
+    }
+
+    QStringList modelList;
+
+    for(QPair<QString, int> sys : selected_county->systems){
+        modelList << QString("%1 : %2").arg(sys.second).arg(sys.first);
+    }
+
+    QAbstractItemModel *model = new QStringListModel(modelList);
+    ui->setupListView->setModel(model);
+}
+
+/**
+ * @brief MainWindow::scrapeChannelsHandleStdout slot to read from temp csv file when web scraper is finished
+ * @param exitCode
+ * @param exitStatus
+ */
+void MainWindow::scrapeChannelsHandleStdout(int exitCode, QProcess::ExitStatus exitStatus){
+    if(exitStatus == QProcess::CrashExit){
+        logMessage("Web scraper crashed.");
+    }else{
+        qDebug() << QString("Web scraper done, exited with code %1").arg(exitCode);
+        logMessage(QString("Web scraper done, exited with code %1").arg(exitCode));
+    }
+    QString tmpDirPath = QString("/var/lib/sdrapp/%1").arg("tmp");
+    QString tempCSVPath = QString("%1/webscrape_results.csv").arg(tmpDirPath);
+    QVector<QVector<QString>> csv = read_csv_file(tempCSVPath);
+    QString fname;
+    QVector<QString> protocolColumn(csv.length());
+
+    if(selected_state == nullptr || selected_county == nullptr){
+        return;
+    }
+    QDir countyDir(QString("var/lib/sdrapp/%1/%2").arg(selected_state->name).arg(selected_county->name));
+    if(!countyDir.exists()){
+        logMessage(QString("Creating %1...").arg(countyDir.absolutePath()));
+    }
+    if(this->radio->getProtocol().compare("p25", Qt::CaseInsensitive) == 0){
+        // P25 specific things
+        fname = QString("%1/master_P25_talkgroups.csv").arg(countyDir.absolutePath());
+        QString current_system_name = ui->setupListView->currentIndex().data().toString();
+        QVector<QString> sysNameColumn(csv.length());
+        QVector<QString> sysIdColumn(csv.length());
+        sysNameColumn.fill(this->currentSystem.first);
+        sysIdColumn.fill(QString("%1").arg(this->currentSystem.second));
+
+        sysNameColumn[0] = "System Name";
+        sysIdColumn[0] = "System ID";
+
+        protocolColumn.fill("P25");
+        add_csv_column(csv, sysNameColumn);
+        add_csv_column(csv, sysIdColumn);
+
+    }else{
+        // just FM
+        fname = QString("%1/master_FM_stations.csv").arg(countyDir.absolutePath());
+        protocolColumn.fill("FM");
+    }
+    protocolColumn[0] = "Protocol";
+    add_csv_column(csv, protocolColumn);
+    QVector<Channel> newChannels = Radio::channelsFromCsv(csv);
+    QVector<Channel> existingChannels = Radio::channelsFromCsv(read_csv_file(fname));
+    QVector<Channel> combinedChannels = Radio::mergeChannels(existingChannels, newChannels); // combine new and existing channels
+
+    if(selected_state != nullptr && selected_county != nullptr){
+        // update channels with whatever information will be written to the master CSV file
+        // no need to update from the actual file, we already have the info in a vector
+        this->radio->updateChannels(selected_state->name, selected_county->name, combinedChannels);
+    }
+
+    // finally write out to corresponding file
+    write_csv_file( Radio::channelsToCsv(combinedChannels) , fname );
+
+}
+
 void MainWindow::on_findWifiBtn_clicked()
 {
     // use lswifi then populate combobox with SSID's
@@ -858,7 +943,7 @@ void MainWindow::on_p25Btn_clicked()
     ui->fmBtn->setChecked(false);
 
     // emit change protocol signal
-    emit changeProtocol("P25");
+    emit changeProtocol("p25");
 }
 
 void MainWindow::on_fmBtn_clicked()
@@ -867,5 +952,185 @@ void MainWindow::on_fmBtn_clicked()
     ui->p25Btn->setChecked(false);
 
     // emit change protocol signal
-    emit changeProtocol("FM");
+    emit changeProtocol("fm");
+}
+
+void MainWindow::on_setupStateNextButton_clicked()
+{
+    QString str = ui->setupListView->currentIndex().data().toString();
+    logMessage(str);
+    switch(this->setupState){
+    case MainWindow::SELECT_STATE:{
+        this->selected_state = this->radio->getStateByName(str);
+        if(selected_state != nullptr){
+            QAbstractItemModel *model = new QStringListModel(this->selected_state->getCountyNames());
+            ui->setupListView->setModel(model);
+            ui->setupStateBackButton->setDisabled(false);
+            ui->setupStateLabel->setText("Select County");
+            setupState = MainWindow::SELECT_COUNTY;
+        }
+        break;
+    }case MainWindow::SELECT_COUNTY:{
+        if(this->selected_county == nullptr || this->selected_county->name.compare(str) != 0){
+            // new county selected
+            this->selected_county = this->selected_state->getCountyByName(str);
+        }
+        // display protocols now
+        if(this->selected_county != nullptr){
+            QAbstractItemModel *model = new QStringListModel(this->radio->protocols);
+            ui->setupListView->setModel(model);
+            ui->setupStateBackButton->setDisabled(false);
+            ui->setupStateLabel->setText("Select Type/Protocol");
+            setupState = MainWindow::SELECT_PROTOCOL;
+        }
+
+        break;
+    }case MainWindow::SELECT_PROTOCOL:{
+        if(this->selected_county == nullptr){
+            break;
+        }
+
+        // need to do this regardless of whether additional scraping is necessary
+        // gets current p25 systems for example, additional ones might come in shortly
+        this->radio->updateChannelsFromFile(selected_state->name, selected_county->name);
+
+        if(str.compare("p25", Qt::CaseInsensitive) == 0){
+            // need to web scrape systems at this point
+            QProcessEnvironment sys = QProcessEnvironment::systemEnvironment();
+
+            QString scrapeSystemsFile = "";
+            if(sys.contains("SCRAPE_SYSTEMS_PATH")){
+                scrapeSystemsFile = sys.value("SCRAPE_SYSTEMS_PATH");
+            }else{
+                scrapeSystemsFile = "web_scrape_systems.py";
+            }
+            logMessage("Scrape Systems script: " + scrapeSystemsFile);
+            if(QFile::exists(scrapeSystemsFile)){// && QFile::permissions(scrapeSystemsFile) & (QFileDevice::ExeGroup | QFileDevice::ExeUser | QFileDevice::ExeOther)){
+                scrapeSystemsProc->start("python3", QStringList() << scrapeSystemsFile << QString("%1").arg(selected_county->county_id));
+            }else{
+                logMessage("Scrape Systems script either not found or not executable.");
+            }
+
+            QStringList modelList;
+
+            for(QPair<QString, int> sys : selected_county->systems){
+                modelList << QString("%1 : %2").arg(sys.first).arg(sys.second);
+            }
+
+            QAbstractItemModel *model = new QStringListModel(modelList);
+            ui->setupListView->setModel(model);
+            ui->setupStateBackButton->setDisabled(false);
+
+            ui->setupStateLabel->setText("Select P25 System");
+            setupState = MainWindow::SELECT_SYSTEM;
+        }
+
+
+        break;
+    }case MainWindow::SELECT_SYSTEM:{
+        ui->setupStateBackButton->setDisabled(false);
+        // don't advance to another state
+        break;
+    }default:{
+        // fix whatever is wrong
+        break;
+    }
+
+    };
+}
+
+void MainWindow::on_setupStateBackButton_clicked()
+{
+    switch(this->setupState){
+    case MainWindow::SELECT_STATE:{
+        // make no changes
+        break;
+    }case MainWindow::SELECT_COUNTY:{
+        QAbstractItemModel *model = new QStringListModel(this->radio->getStateNames());
+        ui->setupListView->setModel(model);
+        ui->updateChannelsButton->setDisabled(true);
+        ui->setupStateNextButton->setDisabled(false);
+        ui->setupStateBackButton->setDisabled(true);
+        ui->setupStateLabel->setText("Select State");
+        setupState = MainWindow::SELECT_STATE;
+        break;
+    }case MainWindow::SELECT_PROTOCOL:{
+        if(this->selected_state != nullptr){
+            QAbstractItemModel *model = new QStringListModel(this->selected_state->getCountyNames());
+            ui->setupListView->setModel(model);
+        }else{
+            QAbstractItemModel *model = new QStringListModel();
+            ui->setupListView->setModel(model);
+        }
+
+        ui->updateChannelsButton->setDisabled(true);
+        ui->setupStateNextButton->setDisabled(false);
+        ui->setupStateLabel->setText("Select County");
+        setupState = MainWindow::SELECT_COUNTY;
+        break;
+    }case MainWindow::SELECT_SYSTEM:{
+        QAbstractItemModel *model = new QStringListModel(this->radio->protocols);
+        ui->setupListView->setModel(model);
+        ui->updateChannelsButton->setDisabled(true);
+        ui->setupStateNextButton->setDisabled(false);
+        ui->setupStateLabel->setText("Select Type/Protocol");
+        setupState = MainWindow::SELECT_PROTOCOL;
+        break;
+    }default:{
+        // fix whatever is wrong
+        break;
+    }
+
+    };
+}
+
+void MainWindow::on_setupListView_clicked(const QModelIndex &index)
+{
+    QString str = index.data().toString();
+    switch(this->setupState){
+    case MainWindow::SELECT_STATE:{
+        ui->setupStateNextButton->setDisabled(false);
+        ui->updateChannelsButton->setDisabled(true);
+        // click indicates that we've entered a state
+        this->selected_state = this->radio->getStateByName(str);
+        break;
+    }case MainWindow::SELECT_COUNTY:{
+        ui->setupStateNextButton->setDisabled(false);
+        ui->updateChannelsButton->setDisabled(true);
+        if(this->selected_state != nullptr)
+            this->selected_county = this->selected_state->getCountyByName(str);
+
+        break;
+    }case MainWindow::SELECT_PROTOCOL:{
+        if(this->radio->protocols.contains(str, Qt::CaseInsensitive)){
+            logMessage("Changing protocol to " + str);
+            if(str.compare("p25", Qt::CaseInsensitive) == 0){
+                ui->updateChannelsButton->setDisabled(true);
+                ui->setupStateNextButton->setDisabled(false);
+                ui->p25Btn->click();
+            }else if(str.compare("fm", Qt::CaseInsensitive) == 0){
+                ui->fmBtn->click();
+                ui->updateChannelsButton->setDisabled(false);
+                ui->setupStateNextButton->setDisabled(true); // nowhere else to go
+            }
+        }
+        break;
+    }case MainWindow::SELECT_SYSTEM:{
+        QStringList parts = str.split(':');
+        this->currentSystem = QPair<QString, int>();
+        this->currentSystem.first = parts[1];
+        this->currentSystem.second = parts[0].remove(' ').toInt();
+        logMessage(QString("Updating currentSystem to <%1,%2>").arg(this->currentSystem.first).arg(this->currentSystem.second));
+        if(this->selected_county != nullptr){
+            this->selected_county->currentSystem = parts[1];
+            ui->updateChannelsButton->setDisabled(false);
+        }
+
+        break;
+    }default:{
+        // fix whatever is wrong
+        break;
+    }
+
+    };
 }

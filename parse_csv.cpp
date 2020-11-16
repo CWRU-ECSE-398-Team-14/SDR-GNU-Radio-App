@@ -1,6 +1,5 @@
 #include <parse_csv.h>
 
-
 QVector<QVector<QString>> read_csv(std::istream& stream){
 
     std::string line;
@@ -21,7 +20,7 @@ QVector<QVector<QString>> read_csv(std::istream& stream){
     return csv;
 }
 
-void write_csv(QVector<QVector<QString>> csv_data, std::ostream os){
+void write_csv(QVector<QVector<QString>> csv_data, std::ostream& os){
     for(auto line : csv_data){
         int words = line.length();
         int i = 0;
@@ -34,5 +33,40 @@ void write_csv(QVector<QVector<QString>> csv_data, std::ostream os){
                 os << '\n';
             }
         }
+    }
+}
+
+
+QVector<QVector<QString>> read_csv_file(QString path){
+    std::filebuf fbuf;
+    if(fbuf.open(path.toStdString(), std::ios::in)){
+        std::istream is(&fbuf);
+        return read_csv(is);
+    }else{
+        qDebug() << "Can't open " << path << " for reading";
+    }
+    return QVector<QVector<QString>>();
+}
+
+/**
+ * @brief write_csv_file
+ * @param csv_data
+ * @param path
+ */
+void write_csv_file(QVector<QVector<QString>> csv_data, QString path){
+    std::filebuf fbuf;
+    if(fbuf.open(path.toStdString(), std::ios::out)){
+        std::ostream os(&fbuf);
+        write_csv(csv_data, os);
+    }
+}
+
+
+void add_csv_column(QVector<QVector<QString>>& csv_data, QVector<QString>& column){
+    if(csv_data.length() != column.length()){
+        return;
+    }
+    for(int i = 0; i < csv_data.length(); i++){
+        csv_data[i].append(column[i]);
     }
 }

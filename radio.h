@@ -66,6 +66,16 @@ public:
     bool isSearching    = false;
 };
 
+class System{
+public:
+    System(QString name, int id);
+    bool operator==(const System& ch);
+    QString name    = "";
+    int id          = 0;
+    double frequency= 0.0;
+    QString type    = "";
+};
+
 /**
  * @brief The Channel class represents a radio channel
  */
@@ -78,8 +88,10 @@ public:
     Channel(const Channel& ch);
     QJsonObject toJson();
     bool operator==(const Channel& ch);
+    friend bool operator==(const Channel& ch1, const Channel& ch2);
     QString name        = "";
     int     id          = 0; // denoted by the DEC column
+    QString hex         = "";
     QString description = "";
     QString protocol    = "";
     QString mode        = "";
@@ -88,9 +100,11 @@ public:
     QString alpha_tag   = "";
     QString group       = "";
     QString talkgroup   = "";
+    QString system      = "";
     double tone         = 0.0;
     double frequency    = 0.0;
     double bandwidth    = 0.0;
+    int     systemId    = 0;
     QString getName() { return name; }
     QString toString();
 };
@@ -101,13 +115,17 @@ public:
 class County{
 public:
     County(QString name, int id);
-    QString name = "None";
-    int county_id = 0;
+    QString name            = "None";
+    int county_id           = 0;
+    QString currentSystem   = "";
+    QVector<QPair<QString, int>> systems;
     QVector<Channel> channels;
+    void addSystem(QPair<QString, int> sys);
     QVector<QString> getProtocols();
     QVector<QString> getTags();
     QVector<QString> getTalkgroups();
     QVector<QString> getGroups();
+    QVector<QPair<QString, int>> getSystems();
     QVector<Channel> getChannelsByProtocol(QString proto);
     QVector<Channel> getChannelsByTag(QString tag);
     QVector<Channel> getChannelsByTalkgroup(QString talkgroup);
@@ -123,6 +141,7 @@ public:
     int numCounties() { return this->counties.length(); }
     QString name = "None";
     QVector<County> counties;
+    QVector<System> systems;
     QStringList getCountyNames();
     County* getCountyByName(QString name);
 };
@@ -140,6 +159,7 @@ class Radio : public QThread
 public:
     explicit Radio(QObject *parent = nullptr);
     ~Radio();
+    QStringList protocols = {"P25", "FM"};
     Channel findChannelByFreq(double freq);
     double  getCenterFreq () { return this->radioConfig->centerFrequency; }
     double  getBandwidth  () { return this->radioConfig->bandwidth; }
@@ -165,7 +185,11 @@ public:
     void addCountyToState(QString state_name, County county);
     QStringList getStateNames();
     int getCountyId(QString name);
+    static QVector<Channel> channelsFromCsv(QVector<QVector<QString>> csv);
+    static QVector<QVector<QString>> channelsToCsv(QVector<Channel> channels);
     void updateChannelsFromFile(QString state, QString county);
+    void updateChannels(QString state, QString county, QVector<Channel> channels);
+    static QVector<Channel> mergeChannels(QVector<Channel> oldChannels, QVector<Channel> newChannels);
 
 public slots:
     void    setBandwidth    (double bw);

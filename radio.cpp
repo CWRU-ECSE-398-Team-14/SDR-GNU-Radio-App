@@ -164,22 +164,16 @@ Channel::Channel(const Channel& ch){
     frequency   = ch.frequency;
     bandwidth   = ch.bandwidth;
     tone        = ch.tone;
+    system      = ch.system;
+    systemId    = ch.systemId;
 }
 
-bool Channel::operator==(const Channel& ch){
-    bool retval = this->frequency == ch.frequency;
-    if(retval){
-        retval &= this->bandwidth == ch.bandwidth;
-        if(retval){
-            retval &= this->name.compare(ch.name) == 0;
-            if(retval){
-                retval &= this->protocol.compare(ch.protocol) == 0;
-            }
-        }
+bool Channel::operator==(const Channel& ch) {
+    return (this->name.compare(ch.name, Qt::CaseInsensitive) == 0) && (this->id == ch.id);
+}
 
-    }
-
-    return retval;
+bool operator==(const Channel& ch1, const Channel& ch2){
+    return (ch1.name.compare(ch2.name, Qt::CaseInsensitive) == 0) && (ch1.id == ch2.id);
 }
 
 QJsonObject Channel::toJson(){
@@ -210,6 +204,10 @@ QJsonObject Channel::toJson(){
         json.insert("frequency", this->frequency);
     if(bandwidth != 0.0)
         json.insert("bandwidth", this->bandwidth);
+    if(system.length() > 0)
+        json.insert("systemName", this->system);
+    if(systemId != 0)
+        json.insert("systemID", this->systemId);
 
     return json;
 }
@@ -218,6 +216,20 @@ QString Channel::toString(){
     return QString("%1 : %2 : %3").arg(id).arg(description).arg(tag);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//
+//      SYSTEM
+//
+////////////////////////////////////////////////////////////////////////////////
+
+System::System(QString name, int id){
+    this->name = name;
+    this->id = id;
+}
+
+bool System::operator==(const System& sys){
+    return (sys.name.compare(this->name, Qt::CaseInsensitive) == 0) && (sys.id == this->id);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -228,6 +240,7 @@ QString Channel::toString(){
 State::State(QString name){
     this->name = name;
 }
+
 
 QStringList State::getCountyNames(){
     QStringList retval;
@@ -257,6 +270,12 @@ County::County(QString name, int id){
     this->county_id = id;
 }
 
+
+void County::addSystem(QPair<QString, int> sys){
+    if(!this->systems.contains(sys)){
+        this->systems.push_back(sys);
+    }
+}
 
 QVector<QString> County::getProtocols(){
     QVector<QString> retval;
@@ -293,6 +312,22 @@ QVector<QString> County::getGroups(){
     for(auto ch : this->channels){
         if(!retval.contains(ch.group)){
             retval.push_back(ch.group);
+        }
+    }
+    return retval;
+}
+
+/**
+ * @brief County::getSystems returns a QPair vector of available systems in this county
+ * @return
+ */
+QVector<QPair<QString, int>> County::getSystems(){
+    QVector<QPair<QString, int>> retval;
+    QVector<QString> systemNames;
+    for(auto ch : this->channels){
+        if(!systemNames.contains(ch.system)){
+            systemNames.push_back(ch.system);
+            retval.push_back(QPair<QString, int>(ch.system, ch.systemId));
         }
     }
     return retval;
@@ -375,6 +410,7 @@ Channel County::getChannelByString(QString str){
     }
     return Channel();
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -561,6 +597,122 @@ int Radio::getCountyId(QString name){
     return -1;
 }
 
+QVector<Channel> Radio::channelsFromCsv(QVector<QVector<QString>> csv){
+    if(csv.length() == 0){
+        return QVector<Channel>();
+    }
+    QVector<Channel> retval(csv.length()-1);
+    int freq_ind = -1,
+        descrip_ind = -1,
+        tag_ind = -1,
+        talkgroup_ind = -1,
+        alphatag_ind = -1,
+        type_ind = -1,
+        mode_ind = -1,
+        protocol_ind = -1,
+        id_ind = -1,
+        group_ind = -1,
+        system_ind = -1,
+        system_id_ind = -1,
+        hex_ind = -1;
+
+    int line_count = 0;
+    for(auto line : csv){
+        // for each line in csv_data
+        if(line_count == 0){
+            for(int i = 0; i < line.length(); i++){
+                // for each word in line
+                if( line[i].contains("description", Qt::CaseInsensitive)){
+                    descrip_ind = i;
+                }else if( line[i].contains("frequency", Qt::CaseInsensitive) ){
+                    freq_ind = i;
+                }else if( line[i].contains("tag", Qt::CaseInsensitive) && !line[i].contains("alpha", Qt::CaseInsensitive)){
+                    tag_ind = i;
+                }else if( line[i].contains("alpha tag", Qt::CaseInsensitive) ){
+                    alphatag_ind = i;
+                }else if( line[i].contains("type", Qt::CaseInsensitive)){
+                    type_ind = i;
+                }else if( line[i].contains("mode", Qt::CaseInsensitive) ){
+                    mode_ind = i;
+                }else if( line[i].contains("protocol", Qt::CaseInsensitive) ){
+                    protocol_ind = i;
+                }else if( line[i].contains("talkgroup", Qt::CaseInsensitive) ){
+                    talkgroup_ind = i;
+                }else if( line[i].contains("dec", Qt::CaseInsensitive) ){
+                    id_ind = i;
+                }else if( line[i].contains("group", Qt::CaseInsensitive) ){
+                    group_ind = i;
+                }else if( line[i].contains("system name", Qt::CaseInsensitive) ){
+                    system_ind = i;
+                }else if( line[i].contains("system id", Qt::CaseInsensitive) ){
+                    system_id_ind = i;
+                }else if( line[i].contains("hex", Qt::CaseInsensitive) ){
+                    hex_ind = i;
+                }
+            }
+        }else{
+            Channel ch;
+            QPair<QString, int> sys("", 0);
+            if(descrip_ind >= 0)
+                ch.description = line[descrip_ind];
+            if(protocol_ind >= 0)
+                ch.protocol = line[protocol_ind];
+            if(mode_ind >= 0)
+                ch.mode = line[mode_ind];
+            if(tag_ind >= 0)
+                ch.tag = line[tag_ind];
+            if(talkgroup_ind >= 0)
+                ch.talkgroup = line[talkgroup_ind];
+            if(alphatag_ind >= 0)
+                ch.alpha_tag = line[alphatag_ind];
+            if(type_ind >= 0)
+                ch.type = line[type_ind];
+            if(freq_ind >= 0)
+                ch.frequency = line[freq_ind].toDouble() * 1.0e6;
+            if(id_ind >= 0)
+                ch.id = line[id_ind].toInt();
+            if(group_ind >= 0)
+                ch.group = line[group_ind];
+            if(system_ind >= 0){
+                ch.system = line[system_ind];
+                sys.first = ch.system;
+            }if(system_id_ind >= 0){
+                ch.systemId = line[system_id_ind].toInt();
+                sys.second = ch.systemId;
+            }if(hex_ind >= 0)
+                ch.hex = line[hex_ind];
+
+            retval[line_count - 1] = ch;
+        }
+        line_count++;
+    }
+    return retval;
+}
+/*
+ * "description","frequency","tag","alpha tag","type","mode","protocol","talkgroup","dec","group", "system name","system id"
+ */
+QVector<QVector<QString>> Radio::channelsToCsv(QVector<Channel> channels){
+    QVector<QVector<QString>> data;
+    QVector<QString> hddr = {"DEC","HEX","Mode","Alpha Tag","Description","Tag","Group","Frequency","Protocol","System Name","System ID"};
+    data.append(hddr);
+    for(int i = 0; i < channels.length(); i++){
+        QVector<QString> line;
+        line.append(QString("%1").arg(channels[i].id));
+        line.append(channels[i].hex);
+        line.append(channels[i].mode);
+        line.append(channels[i].alpha_tag);
+        line.append(channels[i].description);
+        line.append(channels[i].tag);
+        line.append(channels[i].group);
+        line.append(QString("%1").arg(channels[i].frequency, 0, 'f', 3));
+        line.append(channels[i].protocol);
+        line.append(channels[i].system);
+        line.append(QString("%1").arg(channels[i].systemId));
+        data.append(line);
+    }
+    return data;
+}
+
 /**
  * @brief Radio::updateChannelsFromFile looks for csv files in /var/lib/sdrapp/state/county
  * @param state state name
@@ -573,146 +725,67 @@ void Radio::updateChannelsFromFile(QString state, QString county){
         emit debugMessage(dirPath + " either doesn't exist or is unreadable.");
         return;
     }
-    if(dir.exists("master_p25_talkgroups.csv")){
-        QString path = dir.absoluteFilePath("master_p25_talkgroups.csv");
-        emit debugMessage("Found " + path);
-        std::filebuf fbuf;
-        if(fbuf.open(path.toStdString(), std::ios::in)){
-            State* pState = this->getStateByName(state);
-            County* pCounty = pState->getCountyByName(county);
-            pCounty->channels.clear();
-            std::istream is(&fbuf);
-            QVector<QVector<QString>> csv_data = read_csv(is);
-            int freq_ind=-1, descrip_ind=-1, tag_ind=-1, talkgroup_ind=-1, alphatag_ind=-1, type_ind=-1, mode_ind=-1, protocol_ind=-1, id_ind=-1, group_ind=-1;
-            int line_count = 0;
-            for(auto line : csv_data){
-                // for each line in csv_data
-                if(line_count == 0){
-                    for(int i = 0; i < line.length(); i++){
-                        // for each word in line
-                        if( line[i].contains("description", Qt::CaseInsensitive)){
-                            descrip_ind = i;
-                        }else if( line[i].contains("frequency", Qt::CaseInsensitive) ){
-                            freq_ind = i;
-                        }else if( line[i].contains("tag", Qt::CaseInsensitive) && !line[i].contains("alpha", Qt::CaseInsensitive)){
-                            tag_ind = i;
-                        }else if( line[i].contains("alpha tag", Qt::CaseInsensitive) ){
-                            alphatag_ind = i;
-                        }else if( line[i].contains("type", Qt::CaseInsensitive)){
-                            type_ind = i;
-                        }else if( line[i].contains("mode", Qt::CaseInsensitive) ){
-                            mode_ind = i;
-                        }else if( line[i].contains("protocol", Qt::CaseInsensitive) ){
-                            protocol_ind = i;
-                        }else if( line[i].contains("talkgroup", Qt::CaseInsensitive) ){
-                            talkgroup_ind = i;
-                        }else if( line[i].contains("dec", Qt::CaseInsensitive) ){
-                            id_ind = i;
-                        }else if( line[i].contains("group", Qt::CaseInsensitive) ){
-                            group_ind = i;
-                        }
-                    }
-                }else{
-                    Channel ch;
-                    if(descrip_ind >= 0)
-                        ch.description = line[descrip_ind];
-                    if(protocol_ind >= 0)
-                        ch.protocol = line[protocol_ind];
-                    if(mode_ind >= 0)
-                        ch.mode = line[mode_ind];
-                    if(tag_ind >= 0)
-                        ch.tag = line[tag_ind];
-                    if(talkgroup_ind >= 0)
-                        ch.talkgroup = line[talkgroup_ind];
-                    if(alphatag_ind >= 0)
-                        ch.alpha_tag = line[alphatag_ind];
-                    if(type_ind >= 0)
-                        ch.type = line[type_ind];
-                    if(freq_ind >= 0)
-                        ch.frequency = line[freq_ind].toDouble() * 1.0e6;
-                    if(id_ind >= 0)
-                        ch.id = line[id_ind].toInt();
-                    if(group_ind >= 0)
-                        ch.group = line[group_ind];
-
-                    pCounty->channels.push_back(ch);
+    QStringList list = {"master_P25_talkgroups.csv", "master_FM_stations.csv"};
+    for(QString fname : list){
+        if(dir.exists(fname)){
+            QString path = dir.absoluteFilePath(fname);
+            emit debugMessage("Found " + path);
+            std::filebuf fbuf;
+            if(fbuf.open(path.toStdString(), std::ios::in)){
+                State* pState = this->getStateByName(state);
+                County* pCounty = pState->getCountyByName(county);
+                pCounty->channels.clear();
+                pCounty->systems.clear();
+                std::istream is(&fbuf);
+                QVector<QVector<QString>> csv_data = read_csv(is);
+                QVector<QString> new_col(csv_data.length());
+                if(fname.compare("master_P25_talkgroups.csv") == 0){
+                    new_col.fill("p25");
+                }else if(fname.compare("master_FM_stations.csv") == 0){
+                    new_col.fill("fm");
                 }
-                line_count++;
+                new_col[0] = "Protocol";
+                add_csv_column(csv_data, new_col);
+                pCounty->channels = Radio::channelsFromCsv(csv_data);
+
             }
+
         }
-
-    }
-    if(dir.exists("master_FM_stations.csv")){
-        QString path = dir.absoluteFilePath("master_FM_stations.csv");
-        emit debugMessage("Found " + path);
-        std::filebuf fbuf;
-        if(fbuf.open(path.toStdString(), std::ios::in)){
-            State* pState = this->getStateByName(state);
-            County* pCounty = pState->getCountyByName(county);
-            pCounty->channels.clear();
-            std::istream is(&fbuf);
-            QVector<QVector<QString>> csv_data = read_csv(is);
-            int freq_ind=-1, descrip_ind=-1, tag_ind=-1, talkgroup_ind=-1, alphatag_ind=-1, type_ind=-1, mode_ind=-1, protocol_ind=-1, id_ind=-1, group_ind=-1;
-            int line_count = 0;
-            for(auto line : csv_data){
-                // for each line in csv_data
-                if(line_count == 0){
-                    for(int i = 0; i < line.length(); i++){
-                        // for each word in line
-                        if( line[i].contains("description", Qt::CaseInsensitive)){
-                            descrip_ind = i;
-                        }else if( line[i].contains("frequency", Qt::CaseInsensitive)){
-                            freq_ind = i;
-                        }else if( line[i].contains("tag", Qt::CaseInsensitive) && !line[i].contains("alpha", Qt::CaseInsensitive)){
-                            tag_ind = i;
-                        }else if( line[i].contains("alpha tag", Qt::CaseInsensitive)){
-                            alphatag_ind = i;
-                        }else if( line[i].contains("type", Qt::CaseInsensitive)){
-                            type_ind = i;
-                        }else if( line[i].contains("mode", Qt::CaseInsensitive)){
-                            mode_ind = i;
-                        }else if( line[i].contains("protocol", Qt::CaseInsensitive)){
-                            protocol_ind = i;
-                        }else if( line[i].contains("talkgroup", Qt::CaseInsensitive) == 0 ){
-                            talkgroup_ind = i;
-                        }else if( line[i].contains("dec", Qt::CaseInsensitive) ){
-                            id_ind = i;
-                        }else if( line[i].contains("group", Qt::CaseInsensitive) ){
-                            group_ind = i;
-                        }
-                    }
-                }else{
-                    Channel ch;
-                    if(descrip_ind >= 0)
-                        ch.description = line[descrip_ind];
-                    if(protocol_ind >= 0)
-                        ch.protocol = line[protocol_ind];
-                    if(mode_ind >= 0)
-                        ch.mode = line[mode_ind];
-                    if(tag_ind >= 0)
-                        ch.tag = line[tag_ind];
-                    if(talkgroup_ind >= 0)
-                        ch.talkgroup = line[talkgroup_ind];
-                    if(alphatag_ind >= 0)
-                        ch.alpha_tag = line[alphatag_ind];
-                    if(type_ind >= 0)
-                        ch.type = line[type_ind];
-                    if(freq_ind >= 0)
-                        ch.frequency = line[freq_ind].toDouble() * 1.0e6;
-                    if(id_ind >= 0)
-                        ch.id = line[id_ind].toInt();
-                    if(group_ind >= 0)
-                        ch.group = line[group_ind];
-
-                    pCounty->channels.push_back(ch);
-                }
-                line_count++;
-            }
-        }
-
     }
 
 }
+
+/**
+ * @brief Radio::updateChannels replace county's channels vector with channels and create new systems vector
+ * @param state name of state (not currently used)
+ * @param county name of county
+ * @param channels new vector of channels for the named county
+ */
+void Radio::updateChannels(QString state, QString county, QVector<Channel> channels){
+    State* pState = this->getStateByName(state);
+    County* pCounty = pState->getCountyByName(county);
+    pCounty->channels.clear();
+    pCounty->systems.clear();
+    pCounty->channels = channels;
+    for(auto ch : pCounty->channels){
+        QPair<QString, int> sys(ch.system, ch.systemId);
+        if(!pCounty->systems.contains(sys)){
+            pCounty->systems.append(sys);
+        }
+    }
+}
+
+
+QVector<Channel> Radio::mergeChannels(QVector<Channel> oldChannels, QVector<Channel> newChannels){
+    for(auto ch : newChannels){
+        if(!oldChannels.contains(ch)){
+            // no matching name and id found
+            oldChannels.append(ch); // add this new channel
+        }
+    }
+    return oldChannels;
+}
+
 
 bool Radio::hasState(QString name){
     QStringList names = this->getStateNames();
