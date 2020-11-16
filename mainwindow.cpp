@@ -629,8 +629,12 @@ void MainWindow::on_updateChannelsButton_clicked()
     // 3. start the program
     if(QFile::exists(path)){
         this->logMessage("starting web scraping...");
-        QString tempCSVPath = QString("/var/lib/sdrapp/%1/webscrape_results.csv").arg("tmp");
-        webScrapeProc->setStandardOutputFile(tempCSVPath);
+        QDir tmpDir(QString("/var/lib/sdrapp/%1").arg("tmp"));
+        if(!tmpDir.exists()){
+            logMessage("Creating tmp directory...");
+            tmpDir.mkpath(tmpDir.absolutePath());
+        }
+        webScrapeProc->setStandardOutputFile(QString("%1/webscrape_results.csv").arg(tmpDir.absolutePath()));
 
         // begin the process, pass in the current System ID
         logMessage(QString("%1: %2").arg("Current system ID").arg(this->currentSystem.second));
@@ -846,14 +850,22 @@ void MainWindow::scrapeChannelsHandleStdout(int exitCode, QProcess::ExitStatus e
         qDebug() << QString("Web scraper done, exited with code %1").arg(exitCode);
         logMessage(QString("Web scraper done, exited with code %1").arg(exitCode));
     }
-    QString tempCSVPath = QString("/var/lib/sdrapp/%1/webscrape_results.csv").arg("tmp");
+    QString tmpDirPath = QString("/var/lib/sdrapp/%1").arg("tmp");
+    QString tempCSVPath = QString("%1/webscrape_results.csv").arg(tmpDirPath);
     QVector<QVector<QString>> csv = read_csv_file(tempCSVPath);
     QString fname;
     QVector<QString> protocolColumn(csv.length());
 
+    if(selected_state == nullptr || selected_county == nullptr){
+        return;
+    }
+    QDir countyDir(QString("var/lib/sdrapp/%1/%2").arg(selected_state->name).arg(selected_county->name));
+    if(!countyDir.exists()){
+        logMessage(QString("Creating %1...").arg(countyDir.absolutePath()));
+    }
     if(this->radio->getProtocol().compare("p25", Qt::CaseInsensitive) == 0){
         // P25 specific things
-        fname = QString("/var/lib/sdrapp/%1/%2/master_P25_talkgroups.csv").arg(selected_state->name).arg(selected_county->name);
+        fname = QString("%1/master_P25_talkgroups.csv").arg(countyDir.absolutePath());
         QString current_system_name = ui->setupListView->currentIndex().data().toString();
         QVector<QString> sysNameColumn(csv.length());
         QVector<QString> sysIdColumn(csv.length());
@@ -869,7 +881,7 @@ void MainWindow::scrapeChannelsHandleStdout(int exitCode, QProcess::ExitStatus e
 
     }else{
         // just FM
-        fname = QString("/var/lib/sdrapp/%1/%2/master_FM_stations.csv").arg(selected_state->name).arg(selected_county->name);
+        fname = QString("%1/master_FM_stations.csv").arg(countyDir.absolutePath());
         protocolColumn.fill("FM");
     }
     protocolColumn[0] = "Protocol";
