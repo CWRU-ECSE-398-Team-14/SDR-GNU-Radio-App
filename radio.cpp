@@ -735,7 +735,6 @@ void Radio::updateChannelsFromFile(QString state, QString county){
                 State* pState = this->getStateByName(state);
                 County* pCounty = pState->getCountyByName(county);
                 pCounty->channels.clear();
-                pCounty->systems.clear();
                 std::istream is(&fbuf);
                 QVector<QVector<QString>> csv_data = read_csv(is);
                 QVector<QString> new_col(csv_data.length());
@@ -765,14 +764,7 @@ void Radio::updateChannels(QString state, QString county, QVector<Channel> chann
     State* pState = this->getStateByName(state);
     County* pCounty = pState->getCountyByName(county);
     pCounty->channels.clear();
-    pCounty->systems.clear();
     pCounty->channels = channels;
-    for(auto ch : pCounty->channels){
-        QPair<QString, int> sys(ch.system, ch.systemId);
-        if(!pCounty->systems.contains(sys)){
-            pCounty->systems.append(sys);
-        }
-    }
 }
 
 

@@ -59,6 +59,8 @@ private slots:
 
     void scrapeChannelsHandleStdout(int exitCode, QProcess::ExitStatus exitStatus);
 
+    void webScrapeTimeout();
+
     void beginWebScraping();
 
     void switchSetupState(int newState);
@@ -160,6 +162,7 @@ private:
     QProcess* webScrapeProc = nullptr;
     QProcess* scrapeSystemsProc = nullptr;
     QPair<QString, int> currentSystem;
+    QTimer* webScrapeTimeoutTimer = nullptr;
     void initWidgets();
     double getBandwidthSetpoint();
     double getCenterFreqSetpoint();

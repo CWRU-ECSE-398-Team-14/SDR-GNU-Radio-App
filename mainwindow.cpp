@@ -58,6 +58,10 @@ MainWindow::MainWindow(QWidget *parent)
     this->webScrapeProc = new QProcess(this);
     connect(webScrapeProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &MainWindow::scrapeChannelsHandleStdout);
 
+    // web scraping timeout timer
+    this->webScrapeTimeoutTimer = new QTimer(this);
+    connect(this->webScrapeTimeoutTimer, &QTimer::timeout, this, &MainWindow::webScrapeTimeout);
+
 
     // ==== MainWindow signals to Radio slots ====
     // connect mainwindow signals to radio slots
@@ -637,6 +641,7 @@ void MainWindow::beginWebScraping(){
         this->logMessage("web scraping script does not exist.");
         return;
     }
+    this->webScrapeTimeoutTimer->start(10000); // 10 seconds
 }
 
 /**
@@ -644,86 +649,12 @@ void MainWindow::beginWebScraping(){
  */
 void MainWindow::on_updateChannelsButton_clicked()
 {
-
+    ui->updateChannelsButton->setDisabled(true);
+    ui->updateChannelsButton->setText("Updating Channels...");
     this->beginWebScraping();
 
 }
 
-/*
-void MainWindow::on_sortByComboBox_currentIndexChanged(const QString &arg1)
-{
-    // new grouping/sort-by thing
-    // populate category combo box with available categories
-    if(selected_county == nullptr){
-        return;
-    }
-    if(arg1.compare("tag", Qt::CaseInsensitive) == 0){
-        ui->categoryComboBox->clear();
-        QStringList tags;
-        for(auto str : selected_county->getTags()){
-            tags << str;
-        }
-        ui->categoryComboBox->addItems(tags);
-    }else if(arg1.compare("protocol", Qt::CaseInsensitive) == 0){
-        ui->categoryComboBox->clear();
-        QStringList protocols;
-        for(auto str : selected_county->getProtocols()){
-            protocols << str;
-        }
-        ui->categoryComboBox->addItems(protocols);
-    }else if(arg1.compare("talkgroup", Qt::CaseInsensitive) == 0){
-        ui->categoryComboBox->clear();
-        QStringList talkgroups;
-        for(auto str : selected_county->getTalkgroups()){
-            talkgroups << str;
-        }
-        ui->categoryComboBox->addItems(talkgroups);
-    }else if(arg1.compare("group", Qt::CaseInsensitive) == 0){
-        ui->categoryComboBox->clear();
-        QStringList groups;
-        for(auto str : selected_county->getGroups()){
-            groups << str;
-        }
-        ui->categoryComboBox->addItems(groups);
-    }
-}
-
-void MainWindow::on_categoryComboBox_currentIndexChanged(const QString &arg1)
-{
-    // display channels fitting all the criteria
-    QString sortBy = ui->sortByComboBox->currentText();
-    logMessage("Sort by " + sortBy);
-    QStringList channelStrings;
-
-    if(selected_county == nullptr){
-        return;
-    }
-    if(sortBy.compare("tag", Qt::CaseInsensitive) == 0){
-        // show channels with tag matching arg1
-        for(auto ch : selected_county->getChannelsByTag(arg1)){
-            channelStrings << ch.toString();
-        }
-    }else if(sortBy.compare("protocol", Qt::CaseInsensitive) == 0){
-        // show channels with protocol matching arg1
-        for(auto ch : selected_county->getChannelsByProtocol(arg1)){
-            channelStrings << ch.toString();
-        }
-    }else if(sortBy.compare("talkgroup", Qt::CaseInsensitive) == 0){
-        // show channels with talkgrouup matching arg1
-        for(auto ch : selected_county->getChannelsByTalkgroup(arg1)){
-            channelStrings << ch.toString();
-        }
-    }else if(sortBy.compare("group", Qt::CaseInsensitive) == 0){
-        // show channels with group matching arg1
-        for(auto ch : selected_county->getChannelsByGroup(arg1)){
-            channelStrings << ch.toString();
-        }
-    }
-
-    QAbstractItemModel *model = new QStringListModel(channelStrings);
-    ui->channelsListView->setModel(model);
-}
-*/
 
 void MainWindow::on_addToScanListBtn_clicked()
 {
@@ -849,6 +780,8 @@ void MainWindow::scrapeSystemsHandleStdout(int exitCode, QProcess::ExitStatus ex
  * @param exitStatus
  */
 void MainWindow::scrapeChannelsHandleStdout(int exitCode, QProcess::ExitStatus exitStatus){
+    this->webScrapeTimeoutTimer->stop();
+
     if(exitStatus == QProcess::CrashExit){
         logMessage("Web scraper crashed.");
     }else{
@@ -905,7 +838,22 @@ void MainWindow::scrapeChannelsHandleStdout(int exitCode, QProcess::ExitStatus e
     // finally write out to corresponding file
     write_csv_file( Radio::channelsToCsv(combinedChannels) , fname );
 
+    ui->updateChannelsButton->setText("Update Channels");
+    ui->updateChannelsButton->setDisabled(false);
+
 }
+
+/**
+ * @brief MainWindow::webScrapeTimeout slot to do things in the event of web scraping timing out
+ */
+void MainWindow::webScrapeTimeout(){
+    this->webScrapeProc->kill(); // ensure process is ded
+    logMessage("Web scraping process timed out.");
+    // re enable update channels button
+    ui->updateChannelsButton->setText("Update Channels");
+    ui->updateChannelsButton->setDisabled(false);
+}
+
 
 void MainWindow::on_findWifiBtn_clicked()
 {
@@ -1000,7 +948,7 @@ void MainWindow::switchSetupState(int newState){
         QStringList modelList;
 
         for(QPair<QString, int> sys : selected_county->systems){
-            modelList << QString("%1 : %2").arg(sys.first).arg(sys.second);
+            modelList << QString("%1 : %2").arg(sys.second).arg(sys.first);
         }
 
         QAbstractItemModel *model = new QStringListModel(modelList);
@@ -1151,6 +1099,7 @@ void MainWindow::on_setupStateBackButton_clicked()
         break;
     }case MainWindow::SELECT_SORT_BY:{
         ui->setupStateNextButton->setDisabled(true);
+        ui->updateChannelsButton->setDisabled(true);
         switchSetupState(MainWindow::SELECT_SYSTEM);
         break;
     }case MainWindow::SELECT_VALUE:{
