@@ -137,7 +137,7 @@ sudo chmod 755 $SHARED_DATA_DIR/lswifi.py
 if [[ ! -d "$SHARED_DATA_DIR/WebScraping" ]]; then
   mkdir $SHARED_DATA_DIR/WebScraping
   git clone https://github.com/CWRU-ECSE-398-Team-14/WebScraping.git $SHARED_DATA_DIR/WebScraping
-  python3 -m pip install $SHARED_DATA_DIR/WebScraping/requirements.txt
+  python3 -m pip install -r $SHARED_DATA_DIR/WebScraping/requirements.txt
 fi
 
 echo "Install done. Reboot required."
