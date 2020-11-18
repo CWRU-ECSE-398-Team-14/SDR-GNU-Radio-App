@@ -41,7 +41,7 @@
      <enum>QTabWidget::North</enum>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>3</number>
     </property>
     <widget class="QWidget" name="listenTab">
      <attribute name="title">
@@ -1201,10 +1201,16 @@
       <property name="geometry">
        <rect>
         <x>30</x>
-        <y>10</y>
+        <y>0</y>
         <width>411</width>
-        <height>20</height>
+        <height>31</height>
        </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Liberation Sans</family>
+        <pointsize>14</pointsize>
+       </font>
       </property>
       <property name="text">
        <string>Select State</string>
@@ -1283,19 +1289,6 @@
        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
       </property>
      </widget>
-     <widget class="QPushButton" name="stopScanButton">
-      <property name="geometry">
-       <rect>
-        <x>290</x>
-        <y>220</y>
-        <width>161</width>
-        <height>41</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Stop Scan</string>
-      </property>
-     </widget>
      <widget class="QPushButton" name="p25Btn">
       <property name="geometry">
        <rect>
@@ -1326,6 +1319,19 @@
       </property>
       <property name="checkable">
        <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="clearScanListBtn">
+      <property name="geometry">
+       <rect>
+        <x>290</x>
+        <y>220</y>
+        <width>161</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Clear Scan List</string>
       </property>
      </widget>
     </widget>

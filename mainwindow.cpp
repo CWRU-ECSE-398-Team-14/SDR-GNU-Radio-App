@@ -693,28 +693,36 @@ void MainWindow::on_addToScanListBtn_clicked()
         }
     }
 
+    ui->beginScanBtn->setDisabled(false);
+
 }
 
 void MainWindow::on_beginScanBtn_clicked()
 {
-    // send the list of channels listed in scanListListView to the backend
-    QAbstractItemModel* model = ui->scanListListView->model();
-    if(model == nullptr || selected_county == nullptr){
-        return;
-    }
-    QVector<Channel> channels;
-    for(int row = 0; row < model->rowCount(); row++){
-        Channel ch = selected_county->getChannelByString(model->data(model->index(row, 0)).toString());
-        channels.push_back(ch);
-    }
-    emit setChannelScanList(channels); // set the scan list
-    emit changeSearch(true); // trigger the start of scanning
-}
+    if(areWeScanning){
+        // click should signal stop
+        emit changeSearch(false); // signal the stop of scanning
+        ui->currentChannelInfoLbl->setText("----");
+        ui->beginScanBtn->setText("Begin Scan");
+    }else{
+        // send the list of channels listed in scanListListView to the backend
+        QAbstractItemModel* model = ui->scanListListView->model();
+        if(model == nullptr || selected_county == nullptr){
+            return;
+        }
+        QVector<Channel> channels;
+        for(int row = 0; row < model->rowCount(); row++){
+            Channel ch = selected_county->getChannelByString(model->data(model->index(row, 0)).toString());
+            channels.push_back(ch);
+        }
+        emit setChannelScanList(channels); // set the scan list
+        emit changeSearch(true); // trigger the start of scanning
 
-void MainWindow::on_stopScanButton_clicked()
-{
-    emit changeSearch(false); // signal the stop of scanning
-    ui->currentChannelInfoLbl->setText("----");
+        ui->beginScanBtn->setText("Stop Scan");
+    }
+
+    areWeScanning = !areWeScanning;
+
 }
 
 /**
@@ -1034,7 +1042,7 @@ void MainWindow::on_setupStateNextButton_clicked()
             if(sys.contains("SCRAPE_SYSTEMS_PATH")){
                 scrapeSystemsFile = sys.value("SCRAPE_SYSTEMS_PATH");
             }else{
-                scrapeSystemsFile = "web_scrape_systems.py";
+                scrapeSystemsFile = "/var/lib/sdrapp/WebScraping/getCountySystems.py";
             }
             logMessage("Scrape Systems script: " + scrapeSystemsFile);
             if(QFile::exists(scrapeSystemsFile)){// && QFile::permissions(scrapeSystemsFile) & (QFileDevice::ExeGroup | QFileDevice::ExeUser | QFileDevice::ExeOther)){
@@ -1135,8 +1143,12 @@ void MainWindow::on_setupListView_clicked(const QModelIndex &index)
             if(str.compare("p25", Qt::CaseInsensitive) == 0){
                 ui->setupStateNextButton->setDisabled(false);
                 ui->p25Btn->click();
+                ui->fmBtn->setChecked(false);
+                ui->p25Btn->setChecked(true);
             }else if(str.compare("fm", Qt::CaseInsensitive) == 0){
                 ui->fmBtn->click();
+                ui->p25Btn->setChecked(false);
+                ui->fmBtn->setChecked(true);
                 ui->updateChannelsButton->setDisabled(false);
                 ui->setupStateNextButton->setDisabled(true); // nowhere else to go
             }
@@ -1167,4 +1179,11 @@ void MainWindow::on_setupListView_clicked(const QModelIndex &index)
     }
 
     };
+}
+
+void MainWindow::on_clearScanListBtn_clicked()
+{
+    QAbstractItemModel *model = new QStringListModel(QStringList());
+    ui->scanListListView->setModel(model);
+    ui->beginScanBtn->setDisabled(true);
 }

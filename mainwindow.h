@@ -127,8 +127,6 @@ private slots:
 
     void on_beginScanBtn_clicked();
 
-    void on_stopScanButton_clicked();
-
     void on_findWifiBtn_clicked();
 
     void on_connectToWifiBtn_clicked();
@@ -143,11 +141,9 @@ private slots:
 
     void on_setupListView_clicked(const QModelIndex &index);
 
+    void on_clearScanListBtn_clicked();
+
 private:
-    bool widgetsReady = false;
-    int setupState = MainWindow::SELECT_STATE;
-    QString sortBy = "";
-    QString sortValue = "";
     Ui::MainWindow *ui;
     Radio* radio = nullptr;
     Waterfall* waterfall = nullptr;
@@ -163,6 +159,11 @@ private:
     QProcess* scrapeSystemsProc = nullptr;
     QPair<QString, int> currentSystem;
     QTimer* webScrapeTimeoutTimer = nullptr;
+    bool widgetsReady = false;
+    int setupState = MainWindow::SELECT_STATE;
+    QString sortBy = "";
+    QString sortValue = "";
+    bool areWeScanning = false;
     void initWidgets();
     double getBandwidthSetpoint();
     double getCenterFreqSetpoint();
