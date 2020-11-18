@@ -24,8 +24,10 @@ public:
     enum {
         SELECT_STATE,
         SELECT_COUNTY,
+        SELECT_PROTOCOL,
         SELECT_SYSTEM,
-        SELECT_PROTOCOL
+        SELECT_SORT_BY,
+        SELECT_VALUE
     };
     qint64 startMSecs = 0;
 
@@ -56,6 +58,10 @@ private slots:
     void scrapeSystemsHandleStdout(int exitCode, QProcess::ExitStatus exitStatus);
 
     void scrapeChannelsHandleStdout(int exitCode, QProcess::ExitStatus exitStatus);
+
+    void beginWebScraping();
+
+    void switchSetupState(int newState);
 
     void on_frequencySlider_sliderPressed();
 
@@ -115,12 +121,6 @@ private slots:
 
     void on_updateChannelsButton_clicked();
 
-    void on_sortByComboBox_currentIndexChanged(const QString &arg1);
-
-    void on_categoryComboBox_currentIndexChanged(const QString &arg1);
-
-    void on_sortByComboBox_currentTextChanged(const QString &arg1);
-
     void on_addToScanListBtn_clicked();
 
     void on_beginScanBtn_clicked();
@@ -144,6 +144,8 @@ private slots:
 private:
     bool widgetsReady = false;
     int setupState = MainWindow::SELECT_STATE;
+    QString sortBy = "";
+    QString sortValue = "";
     Ui::MainWindow *ui;
     Radio* radio = nullptr;
     Waterfall* waterfall = nullptr;

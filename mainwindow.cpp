@@ -104,12 +104,6 @@ void MainWindow::initWidgets(){
     ui->setupListView->setModel(model);
     this->setupState = MainWindow::SELECT_STATE;
 
-    // populate sort-by box (sort by csv header fields)
-    ui->sortByComboBox->insertItems(0, QStringList() << "Tag" << "Mode" << "Talkgroup" << "Group");
-
-    // channels ListView initial setup
-    ui->channelsListView->setModel(new QStringListModel());
-
     ui->updateChannelsButton->setDisabled(true);
 
     ui->setupStateBackButton->setDisabled(true);
@@ -591,10 +585,9 @@ void MainWindow::on_freqFineAdjustSlider_actionTriggered(int action)
 }
 
 /**
- * @brief MainWindow::on_updateChannelsButton_clicked
+ * @brief MainWindow::beginWebScraping slot to construct the call to the web scraping script
  */
-void MainWindow::on_updateChannelsButton_clicked()
-{
+void MainWindow::beginWebScraping(){
     if(selected_state != nullptr && selected_county != nullptr){
         this->logMessage(QString("Updating channels for %2 County, %1").arg(selected_state->name).arg(selected_county->name));
     }else{
@@ -605,13 +598,14 @@ void MainWindow::on_updateChannelsButton_clicked()
             this->logMessage(" - selected_county is a null pointer");
         return;
     }
+    // see what protocol the radio is using right now
+//    if(this->radio->getProtocol().compare("p25", Qt::CaseInsensitive) == 0){
+//        // need to figure out selected system and pull channels based on that
+//        QString sysStr = ui->setupListView->currentIndex().data().toString();
+//        QStringList sysList = sysStr.split(':');
+//        this->currentSystem = QPair<QString, int>(sysList[1], sysList[0].toInt());
+//    }
 
-    if(this->radio->getProtocol().compare("p25", Qt::CaseInsensitive) == 0){
-        // need to figure out selected system and pull channels based on that
-        QString sysStr = ui->setupListView->currentIndex().data().toString();
-        QStringList sysList = sysStr.split(':');
-        this->currentSystem = QPair<QString, int>(sysList[1], sysList[0].toInt());
-    }
     // call the web scraping program and process it's output
     // 1. construct URL
     // 2. call web scraping program and pass it the URL
@@ -643,10 +637,19 @@ void MainWindow::on_updateChannelsButton_clicked()
         this->logMessage("web scraping script does not exist.");
         return;
     }
+}
+
+/**
+ * @brief MainWindow::on_updateChannelsButton_clicked
+ */
+void MainWindow::on_updateChannelsButton_clicked()
+{
+
+    this->beginWebScraping();
 
 }
 
-
+/*
 void MainWindow::on_sortByComboBox_currentIndexChanged(const QString &arg1)
 {
     // new grouping/sort-by thing
@@ -720,16 +723,16 @@ void MainWindow::on_categoryComboBox_currentIndexChanged(const QString &arg1)
     QAbstractItemModel *model = new QStringListModel(channelStrings);
     ui->channelsListView->setModel(model);
 }
-
-void MainWindow::on_sortByComboBox_currentTextChanged(const QString &arg1)
-{
-
-}
+*/
 
 void MainWindow::on_addToScanListBtn_clicked()
 {
-    // ==== append the filtered list in channelsListView to the scanListListView ====
-    QAbstractItemModel* model = ui->channelsListView->model();
+    // make sure setupListView is expected to contain a filtered list of channels
+    if(this->setupState != MainWindow::SELECT_VALUE){
+        return;
+    }
+    // ==== append the filtered list in setupListView to the scanListListView ====
+    QAbstractItemModel* model = ui->setupListView->model();
 
     QAbstractItemModel* destModel = ui->scanListListView->model();
     if(destModel == nullptr){
@@ -783,7 +786,9 @@ void MainWindow::on_stopScanButton_clicked()
     ui->currentChannelInfoLbl->setText("----");
 }
 
-
+/**
+ * @brief MainWindow::lswifiHandleData slot to handle data from the lswifi process
+ */
 void MainWindow::lswifiHandleData(){
 
     QString list = QString(lswifiProc->readAllStandardOutput());
@@ -859,7 +864,7 @@ void MainWindow::scrapeChannelsHandleStdout(int exitCode, QProcess::ExitStatus e
     if(selected_state == nullptr || selected_county == nullptr){
         return;
     }
-    QDir countyDir(QString("var/lib/sdrapp/%1/%2").arg(selected_state->name).arg(selected_county->name));
+    QDir countyDir(QString("/var/lib/sdrapp/%1/%2").arg(selected_state->name).arg(selected_county->name));
     if(!countyDir.exists()){
         logMessage(QString("Creating %1...").arg(countyDir.absolutePath()));
     }
@@ -893,6 +898,7 @@ void MainWindow::scrapeChannelsHandleStdout(int exitCode, QProcess::ExitStatus e
     if(selected_state != nullptr && selected_county != nullptr){
         // update channels with whatever information will be written to the master CSV file
         // no need to update from the actual file, we already have the info in a vector
+        logMessage(QString("calling updateChannels for %1 county...").arg(selected_county->name));
         this->radio->updateChannels(selected_state->name, selected_county->name, combinedChannels);
     }
 
@@ -955,6 +961,98 @@ void MainWindow::on_fmBtn_clicked()
     emit changeProtocol("fm");
 }
 
+/**
+ * @brief MainWindow::switchSetupState change contents of setupListView based on newState
+ * @param newState state to switch to
+ */
+void MainWindow::switchSetupState(int newState){
+    switch(newState){
+    case MainWindow::SELECT_STATE:{
+        QAbstractItemModel *model = new QStringListModel(this->radio->getStateNames());
+        ui->setupListView->setModel(model);
+        ui->setupStateBackButton->setDisabled(true);
+        break;
+    }case MainWindow::SELECT_COUNTY:{
+        ui->setupStateBackButton->setDisabled(false);
+        if(selected_state != nullptr){
+            QAbstractItemModel *model = new QStringListModel(this->selected_state->getCountyNames());
+            ui->setupListView->setModel(model);
+            ui->setupStateNextButton->setDisabled(true);
+            ui->setupStateBackButton->setDisabled(false);
+            ui->setupStateLabel->setText("Select County");
+        }
+        break;
+    }case MainWindow::SELECT_PROTOCOL:{
+        ui->setupStateBackButton->setDisabled(false);
+        // display protocols now
+        if(this->selected_county != nullptr){
+            QAbstractItemModel *model = new QStringListModel(this->radio->protocols);
+            ui->setupListView->setModel(model);
+            ui->setupStateNextButton->setDisabled(true);
+            ui->setupStateBackButton->setDisabled(false);
+            ui->setupStateLabel->setText("Select Type/Protocol");
+        }
+        break;
+    }case MainWindow::SELECT_SYSTEM:{
+        ui->setupStateBackButton->setDisabled(false);
+        ui->setupStateNextButton->setDisabled(true);
+
+        QStringList modelList;
+
+        for(QPair<QString, int> sys : selected_county->systems){
+            modelList << QString("%1 : %2").arg(sys.first).arg(sys.second);
+        }
+
+        QAbstractItemModel *model = new QStringListModel(modelList);
+        ui->setupListView->setModel(model);
+
+        ui->setupStateLabel->setText("Select P25 System");
+        break;
+    }case MainWindow::SELECT_SORT_BY:{
+        ui->setupStateBackButton->setDisabled(false);
+        ui->setupStateNextButton->setDisabled(true);
+        QAbstractItemModel *model = new QStringListModel(QStringList() << "Group" << "Tag" << "All Channels");
+        ui->setupListView->setModel(model);
+        ui->setupStateLabel->setText("Select Filter Category");
+        break;
+    }case MainWindow::SELECT_VALUE:{
+        QAbstractItemModel *model = nullptr;
+        if(this->sortBy.compare("group", Qt::CaseInsensitive) == 0){
+            QStringList groups;
+            for(auto str : selected_county->getGroups()){
+                groups << str;
+            }
+            model = new QStringListModel(groups);
+        }else if(this->sortBy.compare("tag", Qt::CaseInsensitive) == 0){
+            QStringList tags;
+            for(auto str: selected_county->getTags()){
+                tags << str;
+            }
+            model = new QStringListModel(tags);
+        }else if(this->sortBy.compare("All Channels", Qt::CaseInsensitive) == 0){
+            QStringList channels;
+            for(auto ch : selected_county->channels){
+                channels << ch.toString();
+            }
+            model = new QStringListModel(channels);
+        }else{
+            model = new QStringListModel(QStringList());
+        }
+
+        ui->setupListView->setModel(model);
+        ui->setupStateLabel->setText(QString("Select %1").arg(this->sortBy));
+
+        ui->setupStateBackButton->setDisabled(false);
+        ui->setupStateNextButton->setDisabled(true);
+    }default:{
+        break;
+    }
+
+    };
+    this->setupState = newState;
+}
+
+
 void MainWindow::on_setupStateNextButton_clicked()
 {
     QString str = ui->setupListView->currentIndex().data().toString();
@@ -962,28 +1060,14 @@ void MainWindow::on_setupStateNextButton_clicked()
     switch(this->setupState){
     case MainWindow::SELECT_STATE:{
         this->selected_state = this->radio->getStateByName(str);
-        if(selected_state != nullptr){
-            QAbstractItemModel *model = new QStringListModel(this->selected_state->getCountyNames());
-            ui->setupListView->setModel(model);
-            ui->setupStateBackButton->setDisabled(false);
-            ui->setupStateLabel->setText("Select County");
-            setupState = MainWindow::SELECT_COUNTY;
-        }
+        this->switchSetupState(MainWindow::SELECT_COUNTY);
         break;
     }case MainWindow::SELECT_COUNTY:{
         if(this->selected_county == nullptr || this->selected_county->name.compare(str) != 0){
             // new county selected
             this->selected_county = this->selected_state->getCountyByName(str);
         }
-        // display protocols now
-        if(this->selected_county != nullptr){
-            QAbstractItemModel *model = new QStringListModel(this->radio->protocols);
-            ui->setupListView->setModel(model);
-            ui->setupStateBackButton->setDisabled(false);
-            ui->setupStateLabel->setText("Select Type/Protocol");
-            setupState = MainWindow::SELECT_PROTOCOL;
-        }
-
+        switchSetupState(MainWindow::SELECT_PROTOCOL);
         break;
     }case MainWindow::SELECT_PROTOCOL:{
         if(this->selected_county == nullptr){
@@ -1010,29 +1094,36 @@ void MainWindow::on_setupStateNextButton_clicked()
             }else{
                 logMessage("Scrape Systems script either not found or not executable.");
             }
-
-            QStringList modelList;
-
-            for(QPair<QString, int> sys : selected_county->systems){
-                modelList << QString("%1 : %2").arg(sys.first).arg(sys.second);
-            }
-
-            QAbstractItemModel *model = new QStringListModel(modelList);
-            ui->setupListView->setModel(model);
-            ui->setupStateBackButton->setDisabled(false);
-
-            ui->setupStateLabel->setText("Select P25 System");
-            setupState = MainWindow::SELECT_SYSTEM;
+            switchSetupState(MainWindow::SELECT_SYSTEM);
         }
-
 
         break;
     }case MainWindow::SELECT_SYSTEM:{
-        ui->setupStateBackButton->setDisabled(false);
-        // don't advance to another state
+
+        switchSetupState(MainWindow::SELECT_SORT_BY);
+        break;
+    }case MainWindow::SELECT_SORT_BY:{
+        switchSetupState(MainWindow::SELECT_VALUE);
+        break;
+    }case MainWindow::SELECT_VALUE:{
+        QStringList channels;
+        if(sortBy.compare("group", Qt::CaseInsensitive) == 0){
+            for(auto ch : selected_county->getChannelsByGroup(this->sortValue)){
+                channels << ch.toString();
+            }
+        }else if(sortBy.compare("tag", Qt::CaseInsensitive) == 0){
+            for(auto ch : selected_county->getChannelsByTag(this->sortValue)){
+                channels << ch.toString();
+            }
+        }else if(sortBy.compare("all channels", Qt::CaseInsensitive) == 0){
+            // str is our channel string
+            Channel ch = selected_county->getChannelByString(this->sortValue);
+        }
+        QAbstractItemModel *model = new QStringListModel(channels);
+        ui->setupListView->setModel(model);
         break;
     }default:{
-        // fix whatever is wrong
+        switchSetupState(MainWindow::SELECT_STATE);
         break;
     }
 
@@ -1046,38 +1137,28 @@ void MainWindow::on_setupStateBackButton_clicked()
         // make no changes
         break;
     }case MainWindow::SELECT_COUNTY:{
-        QAbstractItemModel *model = new QStringListModel(this->radio->getStateNames());
-        ui->setupListView->setModel(model);
-        ui->updateChannelsButton->setDisabled(true);
-        ui->setupStateNextButton->setDisabled(false);
-        ui->setupStateBackButton->setDisabled(true);
-        ui->setupStateLabel->setText("Select State");
-        setupState = MainWindow::SELECT_STATE;
+        ui->setupStateNextButton->setDisabled(true);
+        switchSetupState(MainWindow::SELECT_STATE);
         break;
     }case MainWindow::SELECT_PROTOCOL:{
-        if(this->selected_state != nullptr){
-            QAbstractItemModel *model = new QStringListModel(this->selected_state->getCountyNames());
-            ui->setupListView->setModel(model);
-        }else{
-            QAbstractItemModel *model = new QStringListModel();
-            ui->setupListView->setModel(model);
-        }
-
-        ui->updateChannelsButton->setDisabled(true);
-        ui->setupStateNextButton->setDisabled(false);
-        ui->setupStateLabel->setText("Select County");
-        setupState = MainWindow::SELECT_COUNTY;
+        ui->setupStateNextButton->setDisabled(true);
+        switchSetupState(MainWindow::SELECT_COUNTY);
         break;
     }case MainWindow::SELECT_SYSTEM:{
-        QAbstractItemModel *model = new QStringListModel(this->radio->protocols);
-        ui->setupListView->setModel(model);
+        ui->setupStateNextButton->setDisabled(true);
         ui->updateChannelsButton->setDisabled(true);
-        ui->setupStateNextButton->setDisabled(false);
-        ui->setupStateLabel->setText("Select Type/Protocol");
-        setupState = MainWindow::SELECT_PROTOCOL;
+        switchSetupState(MainWindow::SELECT_PROTOCOL);
+        break;
+    }case MainWindow::SELECT_SORT_BY:{
+        ui->setupStateNextButton->setDisabled(true);
+        switchSetupState(MainWindow::SELECT_SYSTEM);
+        break;
+    }case MainWindow::SELECT_VALUE:{
+        ui->setupStateNextButton->setDisabled(true);
+        switchSetupState(MainWindow::SELECT_SORT_BY);
         break;
     }default:{
-        // fix whatever is wrong
+        switchSetupState(MainWindow::SELECT_STATE);
         break;
     }
 
@@ -1090,13 +1171,11 @@ void MainWindow::on_setupListView_clicked(const QModelIndex &index)
     switch(this->setupState){
     case MainWindow::SELECT_STATE:{
         ui->setupStateNextButton->setDisabled(false);
-        ui->updateChannelsButton->setDisabled(true);
         // click indicates that we've entered a state
         this->selected_state = this->radio->getStateByName(str);
         break;
     }case MainWindow::SELECT_COUNTY:{
         ui->setupStateNextButton->setDisabled(false);
-        ui->updateChannelsButton->setDisabled(true);
         if(this->selected_state != nullptr)
             this->selected_county = this->selected_state->getCountyByName(str);
 
@@ -1105,7 +1184,6 @@ void MainWindow::on_setupListView_clicked(const QModelIndex &index)
         if(this->radio->protocols.contains(str, Qt::CaseInsensitive)){
             logMessage("Changing protocol to " + str);
             if(str.compare("p25", Qt::CaseInsensitive) == 0){
-                ui->updateChannelsButton->setDisabled(true);
                 ui->setupStateNextButton->setDisabled(false);
                 ui->p25Btn->click();
             }else if(str.compare("fm", Qt::CaseInsensitive) == 0){
@@ -1125,8 +1203,15 @@ void MainWindow::on_setupListView_clicked(const QModelIndex &index)
             this->selected_county->currentSystem = parts[1];
             ui->updateChannelsButton->setDisabled(false);
         }
+        ui->setupStateNextButton->setDisabled(false);
 
         break;
+    }case MainWindow::SELECT_SORT_BY:{
+        this->sortBy = str;
+        ui->setupStateNextButton->setDisabled(false);
+    }case MainWindow::SELECT_VALUE:{
+        this->sortValue = str;
+        ui->setupStateNextButton->setDisabled(false);
     }default:{
         // fix whatever is wrong
         break;
