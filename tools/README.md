@@ -30,7 +30,7 @@ You should change these values as needed in the `start_sdr_gnu_radio.sh` script 
 ### `QT_QPA_PLATFORM`
 This specifies the plugin for Qt to use. We chose LinuxFB, which allows us to write directly to the frame buffer of our touchscreen. Our framebuffer device was `/dev/fb0`, so we set this environment variable to `linuxfb:fb=/dev/fb0`.
 ### `QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS`
-This specifies the name of the input device, which is our touchscreen. On our system, our touchscreen input was `/dev/input/event0` - yours may be different. Look in your `/dev/input` directory and see what options you have. We found we also had to rotate our coordinates by 90 degrees. So our final value for this environment variable was `/dev/input/event0:rotate=90`. You may also have to invert your coordinate system (we did not). To do so, you would add `:invertx` or `:inverty` to the value.
+This specifies the name of the input device, which is our touchscreen. On our system, our touchscreen input was `/dev/input/event1` - yours may be different. Look in your `/dev/input` directory and see what options you have. We found we also had to rotate our coordinates by 90 degrees. So our final value for this environment variable was `/dev/input/event1:rotate=90`. You may also have to invert your coordinate system (we did not). To do so, you would add `:invertx` or `:inverty` to the value.
 ### `US_COUNTIES_FILE_PATH`
 Install script takes care of this. 
 ### `LSWIFI_PATH`
